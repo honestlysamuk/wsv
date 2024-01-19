@@ -1,0 +1,15 @@
+[package]
+name = "wsv"
+version = "0.1.0"
+authors = ["honestlysamuk"]
+edition = "2021"
+description = "A Rust implementation of the Whitespace-separated values, as defined by Stenway. https://dev.stenway.com/WSV/"
+license = "MIT"
+homepage = "Coming soon"
+documentation = "Coming soon"
+repository = "Coming soon"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
