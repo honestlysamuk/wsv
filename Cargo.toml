@@ -7,7 +7,7 @@ description = "A Rust implementation of the Whitespace-separated values, as defi
 license = "MIT"
 homepage = "https://dev.stenway.com/WSV/"
 documentation = "https://dev.stenway.com/WSV/"
-repository = "Coming soon"
+repository = "https://dev.stenway.com/WSV/"
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
