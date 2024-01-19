@@ -6,7 +6,7 @@ edition = "2021"
 description = "A Rust implementation of the Whitespace-separated values, as defined by Stenway. https://dev.stenway.com/WSV/"
 license = "MIT"
 homepage = "https://dev.stenway.com/WSV/"
-documentation = "Coming soon"
+documentation = "https://dev.stenway.com/WSV/"
 repository = "Coming soon"
 readme = "README.md"
 
