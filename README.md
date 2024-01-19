@@ -1,0 +1,1 @@
+A Rust implementation of the Whitespace-separated values, as defined by Stenway. https://dev.stenway.com/WSV/
