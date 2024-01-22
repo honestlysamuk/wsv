@@ -1,6 +1,6 @@
 [package]
 name = "wsv"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["honestlysamuk"]
 edition = "2021"
 description = "A Rust implementation of the Whitespace-separated values, as defined by Stenway. https://dev.stenway.com/WSV/"
