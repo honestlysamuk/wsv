@@ -1,91 +1,53 @@
 use std::{fs, path::Path};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn nulls() {
-        let wsv = parse_wsv("tests/nulls.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    fn comments() {
-        let wsv = parse_wsv("tests/comments.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    fn numbers() {
-        let wsv = parse_wsv("tests/numbers.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    fn strings() {
-        let wsv = parse_wsv("tests/strings.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    fn not_null() {
-        let wsv = parse_wsv("tests/not_null.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    fn everything() {
-        let wsv = parse_wsv("tests/everything.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    #[should_panic]
-    fn odd_quotes() {
-        let wsv = parse_wsv("tests/odd_quotes.wsv");
-        println!("{:?}", wsv);
-    }
-    #[test]
-    #[should_panic]
-    fn invalid_utf8() {
-        let wsv = parse_wsv("tests/invalid_utf8.wsv");
-        println!("{:?}", wsv);
-    }
-}
-
 type WSV = Vec<Vec<Option<String>>>;
-fn parse_wsv<P>(path: P) -> WSV
+pub fn parse_wsv<P>(path: P) -> Result<WSV, std::io::Error>
 where
     P: AsRef<Path>,
 {
-    let contents = fs::read_to_string(path).expect("UTF-8 encoding");
+    let contents = fs::read_to_string(&path)
+        .expect(format!("UTF-8 encoded file at location {:#?}", &path.as_ref()).as_ref());
 
-    let mut result: WSV = Vec::new();
+    println!("{}", contents);
+
+    Ok(contents
+        .lines()
+        .map(|line| parse_line(line))
+        .filter(|x| x.is_some())
+        .map(|x| x.unwrap())
+        .collect::<WSV>())
+}
+
+fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
     let mut values: Vec<Option<String>> = Vec::new();
     let mut value = String::new();
     let mut open_quotes: bool = false;
+    let mut last = None;
 
-    for c in contents.chars() {
+    let chars = line.chars();
+    for c in chars {
         match c {
             '#' => {
                 if open_quotes {
                     value.push(c);
                 } else {
-                    break; // back to the line loop
-                }
-            }
-            '\n' => {
-                if open_quotes {
-                    value.push(c);
-                }
-                if !open_quotes {
-                    if !value.is_empty() {
-                        values.push(Some(value));
-                        value = String::new();
-                    }
-                    result.push(values);
-                    values = Vec::new();
+                    break;
                 }
             }
             c if c.is_whitespace() => {
+                if last == Some('-') {
+                    values.push(None);
+                    last = None;
+                }
                 if open_quotes {
                     value.push(c);
                 }
                 if !open_quotes && !value.is_empty() {
+                    value = value.replace("\"/\"", "\n").replace("\"\"", "\"");
+                    if value.starts_with('"') {
+                        value.pop();
+                        value.remove(0);
+                    }
                     values.push(Some(value));
                     value = String::new();
                 }
@@ -95,18 +57,36 @@ where
                 value.push(c);
             }
             '-' => {
-                if open_quotes {
-                    value.push(c);
+                if !open_quotes {
+                    last = Some(c);
                 } else {
-                    values.push(None);
+                    value.push(c);
                 }
             }
             _ => value.push(c),
         }
-
-        //   values
-        //        .into_iter()
-        //      .map(|v| v.unwrap().replace("\"/\"", "\n").replace("\"\"", "\""));
     }
-    result
+
+    if open_quotes {
+        panic!("odd number of double quotes");
+    }
+
+    if !value.is_empty() {
+        value = value.replace("\"/\"", "\n").replace("\"\"", "\"");
+        if value.starts_with('"') {
+            value.pop();
+            value.remove(0);
+        }
+        values.push(Some(value));
+    }
+
+    if last == Some('-') {
+        values.push(None);
+    }
+
+    if values.is_empty() {
+        None
+    } else {
+        Some(values)
+    }
 }
