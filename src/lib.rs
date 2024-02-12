@@ -1,31 +1,37 @@
+use self::data_model::*;
 use std::{fs, path::Path};
 
-type WSV = Vec<Vec<Option<String>>>;
-pub fn parse_wsv<P>(path: P) -> Result<WSV, std::io::Error>
+pub fn parse<P>(path: P) -> Result<WSV, std::io::Error>
 where
     P: AsRef<Path>,
 {
     let contents = fs::read_to_string(&path)
         .expect(format!("UTF-8 encoded file at location {:#?}", &path.as_ref()).as_ref());
 
-    println!("{}", contents);
+    if contents.is_empty() {
+        panic!("File is empty.")
+    } else {
+        let first_char = contents.chars().take(1).collect::<Vec<char>>()[0];
 
-    Ok(contents
-        .lines()
-        .map(|line| parse_line(line))
-        .filter(|x| x.is_some())
-        .map(|x| x.unwrap())
-        .collect::<WSV>())
+        if first_char.to_string().as_bytes() == [239, 187, 191] {
+            panic!("This UTF8 file is encoded with a byte-order mark.")
+        }
+        println!("Contents: {}", contents);
+
+        Ok(contents
+            .lines()
+            .filter_map(|line| parse_line(line))
+            .collect::<WSV>())
+    }
 }
 
 fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
     let mut values: Vec<Option<String>> = Vec::new();
-    let mut value = String::new();
+    let mut value: WsvValue = Default::default();
     let mut open_quotes: bool = false;
     let mut last = None;
 
-    let chars = line.chars();
-    for c in chars {
+    for c in line.chars() {
         match c {
             '#' => {
                 if open_quotes {
@@ -43,13 +49,7 @@ fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
                     value.push(c);
                 }
                 if !open_quotes && !value.is_empty() {
-                    value = value.replace("\"/\"", "\n").replace("\"\"", "\"");
-                    if value.starts_with('"') {
-                        value.pop();
-                        value.remove(0);
-                    }
-                    values.push(Some(value));
-                    value = String::new();
+                    values.push(value.sanitise());
                 }
             }
             '"' => {
@@ -57,10 +57,10 @@ fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
                 value.push(c);
             }
             '-' => {
-                if !open_quotes {
-                    last = Some(c);
-                } else {
+                if open_quotes {
                     value.push(c);
+                } else {
+                    last = Some(c);
                 }
             }
             _ => value.push(c),
@@ -72,12 +72,7 @@ fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
     }
 
     if !value.is_empty() {
-        value = value.replace("\"/\"", "\n").replace("\"\"", "\"");
-        if value.starts_with('"') {
-            value.pop();
-            value.remove(0);
-        }
-        values.push(Some(value));
+        values.push(value.sanitise());
     }
 
     if last == Some('-') {
@@ -88,5 +83,33 @@ fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
         None
     } else {
         Some(values)
+    }
+}
+
+mod data_model {
+    pub type WSV = Vec<Vec<Option<String>>>;
+
+    #[derive(Default)]
+    pub struct WsvValue(String);
+
+    impl WsvValue {
+        pub fn sanitise(&mut self) -> Option<String> {
+            let mut value = self.0.clone();
+            self.0.clear();
+
+            if value.starts_with('"') && value.ends_with('"') {
+                value.pop();
+                value.remove(0);
+            }
+            value = value.replace("\"/\"", "\n").replace("\"\"", "\"");
+            Some(value)
+        }
+        pub fn push(&mut self, ch: char) -> () {
+            self.0.push(ch);
+        }
+
+        pub fn is_empty(&self) -> bool {
+            self.0.is_empty()
+        }
     }
 }

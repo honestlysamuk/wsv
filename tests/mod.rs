@@ -2,7 +2,7 @@ use wsv::*;
 
 #[test]
 fn nulls() {
-    let wsv = parse_wsv("./tests/nulls.wsv").unwrap();
+    let wsv = parse("./tests/nulls.wsv").unwrap();
     println!("{:?}", &wsv);
     assert_eq!(
         wsv,
@@ -16,13 +16,28 @@ fn nulls() {
 }
 #[test]
 fn comments() {
-    let wsv = parse_wsv("./tests/comments.wsv").unwrap();
+    let wsv = parse("./tests/comments.wsv").unwrap();
     println!("{:?}", &wsv);
     assert_eq!(wsv, vec![vec![Some("CommentExample".to_owned())]]);
 }
+
+#[test]
+#[should_panic]
+fn empty() {
+    let wsv = parse("./tests/empty.wsv").unwrap();
+    dbg!(wsv);
+}
+
+#[test]
+#[should_panic]
+fn utf8withbom() {
+    let wsv = parse("./tests/Untitled.txt").unwrap();
+    dbg!(wsv);
+}
+
 #[test]
 fn numbers() {
-    let wsv = parse_wsv("./tests/numbers.wsv").unwrap();
+    let wsv = parse("./tests/numbers.wsv").unwrap();
     println!("{:?}", &wsv);
     assert_eq!(
         wsv,
@@ -36,7 +51,7 @@ fn numbers() {
 }
 #[test]
 fn strings() {
-    let wsv = parse_wsv("./tests/strings.wsv").unwrap();
+    let wsv = parse("./tests/strings.wsv").unwrap();
     println!("{:?}", &wsv);
     assert_eq!(
         wsv,
@@ -50,7 +65,7 @@ fn strings() {
 }
 #[test]
 fn not_null() {
-    let wsv = parse_wsv("./tests/not_null.wsv").unwrap();
+    let wsv = parse("./tests/not_null.wsv").unwrap();
     println!("{:?}", wsv);
     assert_eq!(wsv, vec![vec![Some("-".to_string())]]);
 }
@@ -58,12 +73,12 @@ fn not_null() {
 #[test]
 #[should_panic]
 fn odd_quotes() {
-    let wsv = parse_wsv("./tests/odd_quotes.wsv").unwrap();
+    let wsv = parse("./tests/odd_quotes.wsv").unwrap();
     println!("{:?}", &wsv);
 }
 #[test]
 #[should_panic]
 fn invalid_utf8() {
-    let wsv = parse_wsv("./tests/invalid_utf8.wsv").unwrap();
+    let wsv = parse("./tests/invalid_utf8.wsv").unwrap();
     println!("{:?}", &wsv);
 }
