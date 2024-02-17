@@ -1,4 +1,4 @@
-use wsv::*;
+use wsv::take2::parse;
 
 #[test]
 fn nulls() {
