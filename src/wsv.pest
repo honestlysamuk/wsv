@@ -1,0 +1,13 @@
+//! A parser for a WSV file
+
+// I want to ignore the surrounding quotation marks on strings within the grammar rules, rather than manually remove them later in the parsing. This means that whenever there are no double quotes or new lines, I don't need to modify the input, which I suspect will be most of the time
+
+WHITESPACE = _{ (!"\n" ~ WHITE_SPACE) }
+comment    = _{ ("#" ~ (!"\n" ~ ANY)* ~ &("\n" | EOI)) }
+
+value      = @{ (!("\"" | "#" | WHITE_SPACE) ~ ANY)+ }
+string     = @{ "\"" ~ ("\"\"" | "\"/\"" | (!("\"" | "\n") ~ ANY))* ~ "\"" }
+
+line       =  { ( string | value )* ~ comment? }
+wsv        =  { SOI ~ line ~ ("\n" ~ line)* ~ EOI }
+
