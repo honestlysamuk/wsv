@@ -103,22 +103,19 @@ fn empty() {
 
 #[test]
 fn odd_quotes() {
-    match parse("./tests/odd_quotes.wsv") {
-        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
-        Err(_) => {}
+    if let Ok(v) = parse("./tests/odd_quotes.wsv") {
+        panic!("Parsed Odd Double Quotes: {v:?}")
     }
 }
 #[test]
 fn invalid_utf8() {
-    match parse("./tests/invalid_utf8.wsv") {
-        Ok(v) => panic!("Parsed non UTF-8 content: {v:?}"),
-        Err(_) => {}
+    if let Ok(v) = parse("./tests/invalid_utf8.wsv") {
+        panic!("Parsed non UTF-8 content: {v:?}")
     }
 }
 #[test]
 fn utf8withbom() {
-    match parse("./tests/Untitled.txt") {
-        Ok(v) => panic!("Parsed a file with a BOM: {v:?}"),
-        Err(_) => {}
+    if let Ok(v) = parse("./tests/Untitled.txt") {
+        panic!("Parsed a file with a BOM: {v:?}")
     }
 }

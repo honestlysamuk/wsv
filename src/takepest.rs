@@ -58,7 +58,7 @@ mod data_model {
     }
     impl fmt::Display for WsvValue {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{}", self)
+            write!(f, "{:?}", self)
         }
     }
 

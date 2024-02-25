@@ -3,12 +3,12 @@ use std::{fs, path::Path};
 
 // This function takes only a path to the location of the data and reads the file into a
 // single string for processing in one go. There is no error handling, only panics.
-pub fn parse<P>(path: P) -> Result<WSV, std::io::Error>
+pub fn parse<P>(path: P) -> Result<Wsv, std::io::Error>
 where
     P: AsRef<Path>,
 {
     let contents = fs::read_to_string(&path)
-        .expect(format!("UTF-8 encoded file at location {:#?}", &path.as_ref()).as_ref());
+        .unwrap_or_else(|_| panic!("UTF-8 encoded file at location {:#?}", &path.as_ref()));
 
     if contents.is_empty() {
         panic!("File is empty.")
@@ -20,10 +20,7 @@ where
         }
         println!("Contents: {}", contents);
 
-        Ok(contents
-            .lines()
-            .filter_map(|line| parse_line(line))
-            .collect::<WSV>())
+        Ok(contents.lines().filter_map(parse_line).collect::<Wsv>())
     }
 }
 
@@ -89,7 +86,7 @@ fn parse_line(line: &str) -> Option<Vec<Option<String>>> {
 }
 
 mod data_model {
-    pub type WSV = Vec<Vec<Option<String>>>;
+    pub type Wsv = Vec<Vec<Option<String>>>;
 
     #[derive(Default)]
     pub struct WsvValue(String);
@@ -106,7 +103,7 @@ mod data_model {
             value = value.replace("\"/\"", "\n").replace("\"\"", "\"");
             Some(value)
         }
-        pub fn push(&mut self, ch: char) -> () {
+        pub fn push(&mut self, ch: char) {
             self.0.push(ch);
         }
 

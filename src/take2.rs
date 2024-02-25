@@ -87,7 +87,7 @@ mod data_model {
     }
     impl fmt::Display for WsvValue {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{}", self)
+            write!(f, "{:?}", self)
         }
     }
     impl From<&mut String> for WsvValue {
@@ -114,7 +114,7 @@ mod data_model {
     }
     impl fmt::Display for WsvError {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{}", self)
+            write!(f, "{:?}", self)
         }
     }
     impl From<io::Error> for WsvError {
