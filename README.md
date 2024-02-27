@@ -1,5 +1,13 @@
 A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes on https://honestlysam.uk/
 
+# 0.2.0
+### Tuesday 27th February 2024
+Added an implementation of the parser using nom and exposed wsv::parse as a common interface. Unified all the test cases and standardised the API of all three implementations, up to errors. Also unified the data model underlying all three.
+
+TODO:
+1. Shift all the code I have for the ReliableTXT implementation somewhere else
+2. Process command line arguments to take a file path with [clap](https://crates.io/crate/clap/) or [clio](https://crates.io/crate/clio/).
+
 # 0.1.5
 ### Sunday 25th February 2024
 Rewrote the pest grammar from scratch which simplified the code processing the parser output. Made public the tabulate module so the binary can be executed to demonstrate the function and allow for a visual representation in CLI of the parser functioning properly. Useful for debugging. Introduced [thiserror](https://crates.io/crate/thiserror/) for the pest implementation.

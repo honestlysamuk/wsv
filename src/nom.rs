@@ -1,4 +1,4 @@
-use self::data_model::*;
+pub use crate::data_model::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_till;
@@ -317,35 +317,5 @@ val# comment
                 vec![]
             ])
         );
-    }
-}
-
-pub mod data_model {
-    use core::fmt;
-    use nom::error::Error;
-    use nom::Err;
-    use thiserror::Error;
-
-    #[derive(Default, Debug, PartialEq, Clone)]
-    pub enum WsvValue {
-        Value(String),
-        #[default]
-        Null,
-    }
-    impl fmt::Display for WsvValue {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    #[derive(Error, Debug, Clone, PartialEq)]
-    pub enum WsvError {
-        #[error("{0:?}")]
-        ParseError(String),
-    }
-    impl From<Err<Error<&str>>> for WsvError {
-        fn from(value: Err<Error<&str>>) -> Self {
-            WsvError::ParseError(value.to_string())
-        }
     }
 }

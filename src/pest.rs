@@ -1,20 +1,13 @@
-pub use self::data_model::*;
+pub use crate::data_model::*;
 use pest::Parser;
 use pest_derive::Parser;
-use std::fs::read_to_string;
-use std::path::Path;
 
 #[derive(Parser)]
 #[grammar = "wsv.pest"]
 pub struct WsvParser;
 
-pub fn parse<P>(path: P) -> Result<Vec<Vec<WsvValue>>, WsvError>
-where
-    P: AsRef<Path>,
-{
-    let input = read_to_string(&path).expect("cannot read file");
-
-    Ok(WsvParser::parse(Rule::Wsv, &input)?
+pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, WsvError> {
+    Ok(WsvParser::parse(Rule::Wsv, i)?
         .next()
         .expect("Parsing returns exectly one instance of Wsv")
         .into_inner()
@@ -41,33 +34,4 @@ where
                 .collect()
         })
         .collect())
-}
-
-mod data_model {
-    use crate::pest::Rule;
-    use core::fmt;
-    use thiserror::Error;
-
-    #[derive(Default, Debug, PartialEq, Clone)]
-    pub enum WsvValue {
-        Value(String),
-        #[default]
-        Null,
-    }
-    impl fmt::Display for WsvValue {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{:?}", self)
-        }
-    }
-
-    #[derive(Error, Debug, Clone, PartialEq)]
-    pub enum WsvError {
-        #[error("{0}")]
-        ParseError(String),
-    }
-    impl From<pest::error::Error<Rule>> for WsvError {
-        fn from(value: pest::error::Error<Rule>) -> Self {
-            WsvError::ParseError(value.to_string())
-        }
-    }
 }
