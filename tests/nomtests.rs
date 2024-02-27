@@ -1,9 +1,11 @@
-use wsv::take2::parse;
-use wsv::take2::WsvValue as w;
+use std::fs::read_to_string;
+use wsv::parse;
+use wsv::WsvValue as w;
 
 #[test]
 fn nulls() {
-    match parse("./tests/nulls.wsv") {
+    let contents = read_to_string("./tests/example_files/nulls.wsv").unwrap();
+    match parse(&contents) {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -27,7 +29,8 @@ fn nulls() {
 
 #[test]
 fn numbers() {
-    match parse("./tests/numbers.wsv") {
+    let contents = read_to_string("./tests/example_files/numbers.wsv").unwrap();
+    match parse(&contents) {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -46,7 +49,8 @@ fn numbers() {
 }
 #[test]
 fn strings() {
-    match parse("./tests/strings.wsv") {
+    let contents = read_to_string("./tests/example_files/strings.wsv").unwrap();
+    match parse(&contents) {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -68,7 +72,8 @@ fn strings() {
 
 #[test]
 fn comments() {
-    match parse("./tests/comments.wsv") {
+    let contents = read_to_string("./tests/example_files/comments.wsv").unwrap();
+    match parse(&contents) {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -83,16 +88,18 @@ fn comments() {
 
 #[test]
 fn not_null() {
-    let wsv = parse("./tests/not_null.wsv").unwrap();
+    let contents = read_to_string("./tests/example_files/not_null.wsv").unwrap();
+    let wsv = parse(&contents).unwrap();
     println!("{:?}", wsv);
     assert_eq!(wsv, vec![vec![w::Value("-".to_string())]]);
 }
 
 #[test]
 fn empty() {
-    match parse("./tests/empty.wsv") {
+    let contents = read_to_string("./tests/example_files/empty.wsv").unwrap();
+    match parse(&contents) {
         Ok(wsv) => {
-            let empty_vec: Vec<Vec<w>> = vec![];
+            let empty_vec: Vec<Vec<w>> = vec![vec![]];
             assert_eq!(wsv, empty_vec)
         }
         Err(error) => {
@@ -103,19 +110,11 @@ fn empty() {
 
 #[test]
 fn odd_quotes() {
-    if let Ok(v) = parse("./tests/odd_quotes.wsv") {
-        panic!("Parsed Odd Double Quotes: {v:?}")
-    }
-}
-#[test]
-fn invalid_utf8() {
-    if let Ok(v) = parse("./tests/invalid_utf8.wsv") {
-        panic!("Parsed non UTF-8 content: {v:?}")
-    }
-}
-#[test]
-fn utf8withbom() {
-    if let Ok(v) = parse("./tests/Untitled.txt") {
-        panic!("Parsed a file with a BOM: {v:?}")
+    let contents = read_to_string("./tests/example_files/odd_quotes.wsv").unwrap();
+    match parse(&contents) {
+        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
+        Err(e) => {
+            println!("{e:?}")
+        }
     }
 }

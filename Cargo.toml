@@ -14,7 +14,8 @@ readme = "README.md"
 
 [dependencies]
 unicode-bom = "2"
-pest = "2.6"
-pest_derive = "2.6"
-comfy-table = "7.1.0"
-thiserror = "1.0.57"
+pest = "2"
+pest_derive = "2"
+comfy-table = "7"
+thiserror = "1"
+nom = "7"

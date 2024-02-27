@@ -1,9 +1,14 @@
 pub use self::data_model::*;
 use pest::Parser;
+use pest_derive::Parser;
 use std::fs::read_to_string;
 use std::path::Path;
 
-pub fn parse<P>(path: P) -> Result<Vec<WsvLine>, WsvError>
+#[derive(Parser)]
+#[grammar = "wsv.pest"]
+pub struct WsvParser;
+
+pub fn parse<P>(path: P) -> Result<Vec<Vec<WsvValue>>, WsvError>
 where
     P: AsRef<Path>,
 {
@@ -11,7 +16,7 @@ where
 
     Ok(WsvParser::parse(Rule::Wsv, &input)?
         .next()
-        .unwrap()
+        .expect("Parsing returns exectly one instance of Wsv")
         .into_inner()
         .filter(|line| line.as_rule() != Rule::EOI)
         .map(|l| {
@@ -39,22 +44,15 @@ where
 }
 
 mod data_model {
+    use crate::pest::Rule;
     use core::fmt;
-    use pest_derive::Parser;
     use thiserror::Error;
-
-    pub type WsvLine = Vec<WsvValue>;
-
-    #[derive(Parser)]
-    #[grammar = "wsv.pest"]
-    pub struct WsvParser;
 
     #[derive(Default, Debug, PartialEq, Clone)]
     pub enum WsvValue {
         Value(String),
         #[default]
         Null,
-        Comment(String),
     }
     impl fmt::Display for WsvValue {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -64,7 +62,7 @@ mod data_model {
 
     #[derive(Error, Debug, Clone, PartialEq)]
     pub enum WsvError {
-        #[error("Parse Error: {0}.")]
+        #[error("{0}")]
         ParseError(String),
     }
     impl From<pest::error::Error<Rule>> for WsvError {

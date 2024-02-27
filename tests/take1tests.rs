@@ -2,7 +2,9 @@ use wsv::take1::parse;
 
 #[test]
 fn nulls() {
-    match parse("./tests/nulls.wsv") {
+
+    
+    match parse("./tests/example_files/nulls.wsv") {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -22,7 +24,7 @@ fn nulls() {
 
 #[test]
 fn numbers() {
-    match parse("./tests/numbers.wsv") {
+    match parse("./tests/example_files/numbers.wsv") {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -41,7 +43,7 @@ fn numbers() {
 }
 #[test]
 fn strings() {
-    match parse("./tests/strings.wsv") {
+    match parse("./tests/example_files/strings.wsv") {
         Ok(wsv) => {
             assert_eq!(
                 wsv,
@@ -61,7 +63,7 @@ fn strings() {
 
 #[test]
 fn comments() {
-    match parse("./tests/comments.wsv") {
+    match parse("./tests/example_files/comments.wsv") {
         Ok(wsv) => {
             assert_eq!(wsv, vec![vec![Some("CommentExample".to_owned())]]);
         }
@@ -73,7 +75,7 @@ fn comments() {
 
 #[test]
 fn not_null() {
-    let wsv = parse("./tests/not_null.wsv").unwrap();
+    let wsv = parse("./tests/example_files/not_null.wsv").unwrap();
     println!("{:?}", wsv);
     assert_eq!(wsv, vec![vec![Some("-".to_string())]]);
 }
@@ -82,22 +84,22 @@ fn not_null() {
 #[should_panic]
 
 fn odd_quotes() {
-    parse("./tests/odd_quotes.wsv").expect_err("Odd Double Quotes");
+    parse("./tests/example_files/odd_quotes.wsv").expect_err("Odd Double Quotes");
 }
 #[test]
 #[should_panic]
 
 fn invalid_utf8() {
-    parse("./tests/invalid_utf8.wsv").expect_err("Not UTF-8");
+    parse("./tests/example_files/invalid_utf8.wsv").expect_err("Not UTF-8");
 }
 #[test]
 #[should_panic]
 fn empty() {
-    parse("./tests/empty.wsv").expect_err("Other");
+    parse("./tests/example_files/empty.wsv").expect_err("Other");
 }
 #[test]
 #[should_panic]
 
 fn utf8withbom() {
-    parse("./tests/Untitled.txt").expect_err("BomPresent");
+    parse("./tests/example_files/Untitled.txt").expect_err("BomPresent");
 }

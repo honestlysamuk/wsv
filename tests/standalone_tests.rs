@@ -1,5 +1,5 @@
-use wsv::pest::parse;
-use wsv::pest::WsvValue as w;
+use wsv::standalone::parse;
+use wsv::standalone::WsvValue as w;
 
 #[test]
 fn nulls() {
@@ -92,7 +92,7 @@ fn not_null() {
 fn empty() {
     match parse("./tests/example_files/empty.wsv") {
         Ok(wsv) => {
-            let empty_vec: Vec<Vec<w>> = vec![vec![]];
+            let empty_vec: Vec<Vec<w>> = vec![];
             assert_eq!(wsv, empty_vec)
         }
         Err(error) => {
@@ -103,8 +103,19 @@ fn empty() {
 
 #[test]
 fn odd_quotes() {
-    match parse("./tests/example_files/odd_quotes.wsv") {
-        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
-        Err(_) => {}
+    if let Ok(v) = parse("./tests/example_files/odd_quotes.wsv") {
+        panic!("Parsed Odd Double Quotes: {v:?}")
+    }
+}
+#[test]
+fn invalid_utf8() {
+    if let Ok(v) = parse("./tests/example_files/invalid_utf8.wsv") {
+        panic!("Parsed non UTF-8 content: {v:?}")
+    }
+}
+#[test]
+fn utf8withbom() {
+    if let Ok(v) = parse("./tests/example_files/Untitled.txt") {
+        panic!("Parsed a file with a BOM: {v:?}")
     }
 }
