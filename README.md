@@ -4,6 +4,8 @@ A Rust implementation of the Whitespace-separated values, as defined by Stenway.
 ### Tuesday 27th February 2024
 Added an implementation of the parser using nom and exposed wsv::parse as a common interface. Unified all the test cases and standardised the API of all three implementations, up to errors. Also unified the data model underlying all three.
 
+I will publish 1.0.0 once I have successfully feature-gated the alternative functions.
+
 TODO:
 1. Shift all the code I have for the ReliableTXT implementation somewhere else
 2. Process command line arguments to take a file path with [clap](https://crates.io/crate/clap/) or [clio](https://crates.io/crate/clio/).
