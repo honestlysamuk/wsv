@@ -1,6 +1,7 @@
-pub use crate::data_model::*;
 use pest::Parser;
 use pest_derive::Parser;
+
+pub use crate::data_model::*;
 
 #[derive(Parser)]
 #[grammar = "wsv.pest"]
@@ -9,7 +10,7 @@ pub struct WsvParser;
 pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, WsvError> {
     Ok(WsvParser::parse(Rule::Wsv, i)?
         .next()
-        .expect("Parsing returns exectly one instance of Wsv")
+        .expect("Parsing returns exactly one instance of Wsv")
         .into_inner()
         .filter(|line| line.as_rule() != Rule::EOI)
         .map(|l| {

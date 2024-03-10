@@ -38,6 +38,8 @@ impl From<&mut String> for WsvValue {
 pub enum WsvError {
     #[error("Double Quotes mismatch on line {0}.")]
     DoubleQuotesMismatch(usize),
+    #[error("Malformed input on line {0}.")]
+    MalformedInput(usize),
     #[error("Other Error: {0}.")]
     Other(String),
 }

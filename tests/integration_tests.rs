@@ -118,6 +118,17 @@ macro_rules! test_parser {
             }
 
             #[test]
+            fn [<$parser _malformed>]() {
+                let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
+                match [<$parser>](&contents) {
+                    Ok(v) => panic!("Parsed Malformed input: {v:?}"),
+                    Err(e) => {
+                        println!("{e:?}")
+                    }
+                }
+            }
+
+            #[test]
             fn [<$parser _odd_quotes>]() {
                 let contents = read_to_string("./tests/example_files/odd_quotes.wsv").unwrap();
                 match [<$parser>](&contents) {

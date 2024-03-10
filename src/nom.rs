@@ -1,4 +1,3 @@
-pub use crate::data_model::*;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_till;
@@ -8,26 +7,32 @@ use nom::combinator::all_consuming;
 use nom::combinator::map;
 use nom::combinator::value as ifthen;
 use nom::combinator::verify;
+use nom::IResult;
 use nom::multi::many0;
 use nom::multi::separated_list0;
 use nom::sequence::delimited;
-use nom::IResult;
+
+pub use crate::data_model::*;
 
 fn ws0(i: &str) -> IResult<&str, &str> {
     take_while(|c: char| c.is_whitespace() && c != '\n')(i)
 }
+
 fn ws1(i: &str) -> IResult<&str, &str> {
     verify(
         take_while(|c: char| c.is_whitespace() && c != '\n'),
         |p: &str| !p.is_empty(),
     )(i)
 }
+
 fn new_line(i: &str) -> IResult<&str, &str> {
     ifthen("\n", tag("\"/\""))(i)
 }
+
 fn double_quote(i: &str) -> IResult<&str, &str> {
     ifthen("\"", tag("\"\""))(i)
 }
+
 fn string_part(i: &str) -> IResult<&str, &str> {
     verify(take_till(|c| c == '\n' || c == '\"'), |p: &str| {
         !p.is_empty()
@@ -37,6 +42,7 @@ fn string_part(i: &str) -> IResult<&str, &str> {
 fn null(i: &str) -> IResult<&str, WsvValue> {
     ifthen(WsvValue::Null, tag("-"))(i)
 }
+
 fn value(i: &str) -> IResult<&str, WsvValue> {
     map(
         verify(
@@ -46,21 +52,23 @@ fn value(i: &str) -> IResult<&str, WsvValue> {
         |s| WsvValue::Value(String::from(s)),
     )(i)
 }
+
 fn string(i: &str) -> IResult<&str, WsvValue> {
-    (map(
+    map(
         delimited(
             char('\"'),
             many0(alt((string_part, double_quote, new_line))),
             char('\"'),
         ),
         |s| WsvValue::Value(s.iter().fold(String::new(), |acc, s| acc + s)),
-    ))(i)
+    )(i)
 }
 
 fn comment(i: &str) -> IResult<&str, &str> {
     let (i, _) = tag("#")(i)?;
     take_till(|c| c == '\n')(i)
 }
+
 fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
     let (i, _) = ws0(i)?;
     let (i, o) = separated_list0(ws1, alt((null, string, value)))(i)?;
@@ -71,6 +79,7 @@ fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
     };
     Ok((i, o))
 }
+
 fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
     separated_list0(char('\n'), line)(i)
 }
@@ -89,116 +98,143 @@ mod tests {
     fn ws(i: &str) -> IResult<&str, &str> {
         take_while(|c: char| c.is_whitespace() && c != '\n')(i)
     }
+
     #[test]
-    fn whitespace_parses() -> () {
+    fn whitespace_parses() {
         assert_eq!(ws(" "), Ok(("", " ")));
     }
+
     #[test]
-    fn whitespace_parses_nothing() -> () {
+    fn whitespace_parses_nothing() {
         assert_eq!(ws(""), Ok(("", "")));
     }
+
     #[test]
-    fn whitespace_does_not_parse_newline() -> () {
+    fn whitespace_does_not_parse_newline() {
         assert_eq!(ws("\n"), Ok(("\n", "")));
     }
+
     const NEW_LINE: &str = r##""/""##;
+
     #[test]
-    fn newline_parses() -> () {
+    fn newline_parses() {
         assert_eq!(new_line(NEW_LINE), Ok(("", "\n")));
     }
+
     const QUOTE: &str = r##""""##;
 
     #[test]
-    fn quote_parses() -> () {
+    fn quote_parses() {
         assert_eq!(double_quote(QUOTE), Ok(("", "\"")));
     }
+
     const VALUE: &str = "1";
+
     #[test]
-    fn value_parses() -> () {
+    fn value_parses() {
         assert_eq!(value(VALUE), Ok(("", WsvValue::Value("1".to_owned()))));
     }
+
     const NULL: &str = r#"-"#;
+
     #[test]
-    fn null_parses() -> () {
+    fn null_parses() {
         assert_eq!(null(NULL), Ok(("", WsvValue::Null)));
     }
+
     const COMMENT: &str = "# This is a comment";
+
     #[test]
-    fn comment_parses() -> () {
+    fn comment_parses() {
         assert_eq!(comment(COMMENT), Ok(("", " This is a comment")));
     }
 
     const STRING: &str = r##""hello,world!""##;
+
     #[test]
-    fn string_parses() -> () {
+    fn string_parses() {
         assert_eq!(
             string(STRING),
             Ok(("", WsvValue::Value("hello,world!".to_owned())))
         );
     }
+
     const STRING_WITH_SPACES: &str = r#""hello, world!""#;
+
     #[test]
-    fn string_with_spaces_parses() -> () {
+    fn string_with_spaces_parses() {
         assert_eq!(
             string(STRING_WITH_SPACES),
             Ok(("", WsvValue::Value("hello, world!".to_owned())))
         );
     }
+
     const STRING_WITH_QUOTES: &str = r#""hello,""world!""#;
+
     #[test]
-    fn string_with_quotes() -> () {
+    fn string_with_quotes() {
         assert_eq!(
             string(STRING_WITH_QUOTES),
             Ok(("", WsvValue::Value("hello,\"world!".to_owned())))
         );
     }
+
     const STRING_WITH_NEWLINE: &str = r#""hello,"/"world!""#;
+
     #[test]
-    fn string_with_newline() -> () {
+    fn string_with_newline()
+    {
         assert_eq!(
             string(STRING_WITH_NEWLINE),
             Ok(("", WsvValue::Value("hello,\nworld!".to_owned())))
         );
     }
+
     const STRING_WITH_HASH: &str = r#""hello,#world!""#;
+
     #[test]
-    fn string_with_hash() -> () {
+    fn string_with_hash() {
         assert_eq!(
             string(STRING_WITH_HASH),
             Ok(("", WsvValue::Value("hello,#world!".to_owned())))
         );
     }
+
     const EMPTY_STRING: &str = r#""""#;
+
     #[test]
-    fn empty_string() -> () {
+    fn empty_string() {
         assert_eq!(
             string(EMPTY_STRING),
             Ok(("", WsvValue::Value("".to_owned())))
         );
     }
+
     const EASY_LINE: &str = r##"1 2"##;
+
     #[test]
-    fn easy_line() -> () {
+    fn easy_line() {
         assert_eq!(
             line(EASY_LINE),
             Ok((
                 "",
                 vec![
                     WsvValue::Value("1".to_owned()),
-                    WsvValue::Value("2".to_owned())
+                    WsvValue::Value("2".to_owned()),
                 ]
             ))
         );
     }
 
     #[test]
-    fn empty_line() -> () {
+    fn empty_line() {
         assert_eq!(line(""), Ok(("", vec![])));
     }
 
     const HARD_LINE: &str = r##"1 hello "world" ""/"" """" "" -"##;
+
     #[test]
-    fn hard_line() -> () {
+    fn hard_line() {
         assert_eq!(
             line(HARD_LINE),
             Ok((
@@ -210,19 +246,21 @@ mod tests {
                     WsvValue::Value("\n".to_owned()),
                     WsvValue::Value("\"".to_owned()),
                     WsvValue::Value("".to_owned()),
-                    WsvValue::Null
+                    WsvValue::Null,
                 ]
             ))
         );
     }
-    const WSV1: &str = r##"    1 hello "world" ""/"" """" "" -   
+
+    const WSV1: &str = r##"    1 hello "world" ""/"" """" "" -
 "string" - null # other comment #comment
 # comment
 val#commentt
 val# comment
 "##;
+
     #[test]
-    fn wsv1_test() -> () {
+    fn wsv1_test() {
         assert_eq!(
             wsv(WSV1),
             Ok((
@@ -235,17 +273,17 @@ val# comment
                         WsvValue::Value("\n".to_owned()),
                         WsvValue::Value("\"".to_owned()),
                         WsvValue::Value("".to_owned()),
-                        WsvValue::Null
+                        WsvValue::Null,
                     ],
                     vec![
                         WsvValue::Value("string".to_owned()),
                         WsvValue::Null,
-                        WsvValue::Value("null".to_owned())
+                        WsvValue::Value("null".to_owned()),
                     ],
                     vec![],
                     vec![WsvValue::Value("val".to_owned())],
                     vec![WsvValue::Value("val".to_owned())],
-                    vec![]
+                    vec![],
                 ]
             ))
         );
@@ -259,8 +297,9 @@ val# comment
 val#commentt
 val# comment
 "##;
+
     #[test]
-    fn wsv2_test() -> () {
+    fn wsv2_test() {
         assert_eq!(
             wsv(WSV2),
             Ok((
@@ -274,26 +313,26 @@ val# comment
                         WsvValue::Value("\n".to_owned()),
                         WsvValue::Value("\"".to_owned()),
                         WsvValue::Value("".to_owned()),
-                        WsvValue::Null
+                        WsvValue::Null,
                     ],
                     vec![],
                     vec![
                         WsvValue::Value("string".to_owned()),
                         WsvValue::Null,
                         WsvValue::Value("null".to_owned()),
-                        WsvValue::Value("#".to_owned())
+                        WsvValue::Value("#".to_owned()),
                     ],
                     vec![],
                     vec![WsvValue::Value("val".to_owned())],
                     vec![WsvValue::Value("val".to_owned())],
-                    vec![]
+                    vec![],
                 ]
             ))
         );
     }
 
     #[test]
-    fn parse_test() -> () {
+    fn parse_test() {
         assert_eq!(
             parse(WSV1),
             Ok(vec![
@@ -304,17 +343,17 @@ val# comment
                     WsvValue::Value("\n".to_owned()),
                     WsvValue::Value("\"".to_owned()),
                     WsvValue::Value("".to_owned()),
-                    WsvValue::Null
+                    WsvValue::Null,
                 ],
                 vec![
                     WsvValue::Value("string".to_owned()),
                     WsvValue::Null,
-                    WsvValue::Value("null".to_owned())
+                    WsvValue::Value("null".to_owned()),
                 ],
                 vec![],
                 vec![WsvValue::Value("val".to_owned())],
                 vec![WsvValue::Value("val".to_owned())],
-                vec![]
+                vec![],
             ])
         );
     }
