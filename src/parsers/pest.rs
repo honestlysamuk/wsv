@@ -2,10 +2,10 @@ use pest::error::Error as pestError;
 use pest::Parser;
 use pest_derive::Parser;
 
-pub use crate::data_model::*;
+use crate::data_model::*;
 
 #[derive(Parser)]
-#[grammar = "wsv.pest"]
+#[grammar = "parsers/wsv.pest"]
 pub struct WsvParser;
 
 pub fn parse(i: &str) -> Result<Wsv, WsvError> {
