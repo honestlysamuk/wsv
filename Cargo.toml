@@ -1,6 +1,6 @@
 [package]
 name = "wsv"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["honestlysamuk"]
 edition = "2021"
 description = "A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes on https://honestlysam.uk"
@@ -18,7 +18,6 @@ comfy-table = "7"
 nom = "7"
 pest = "2"
 pest_derive = "2"
-unicode-bom = "2"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 #nom = { version = "7", optional = true }

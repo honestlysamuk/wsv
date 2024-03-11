@@ -1,6 +1,26 @@
 A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes
 on https://honestlysam.uk/
 
+# 0.3.0
+
+### Monday 11th March 2024
+
+Modified the type of all parsers to return a Result<Wsv, WsvError> so that I could implement custom traits on the Wsv newtype. The tabulate functionality is now Display, and there are also Default, IntoIterator, PartialEq and From. This will allow me to intentionally control the functionality of the resulting type.
+
+Shifted around the integration test code so that it didn't use macros and was easier to feature gate (coming soon). Shifted around the source code to practice using modules and privacy settings, and found that lib cannot declare a directory for sub-modules.
+
+Added another primitive implementation of the parser which hinges on splitting the string and dealing with the parts, rather than iterating over every character in order. This is unfinished.
+
+I also played with the tracing crate, which was somewhat useful for debugging but I still haven't baked it into the implementations. Not sure where would be best.
+
+TODO:
+
+1. CLI interface
+2. Serde implementation
+3. Benchmarking: Produce a huge file for this.
+4. Documentation
+5. Shift integration tests to unit or doc tests
+
 # 0.2.0
 
 ### Tuesday 27th February 2024
