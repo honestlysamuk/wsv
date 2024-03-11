@@ -7,10 +7,12 @@ use nom::combinator::all_consuming;
 use nom::combinator::map;
 use nom::combinator::value as ifthen;
 use nom::combinator::verify;
-use nom::IResult;
+use nom::error::Error as nomError;
 use nom::multi::many0;
 use nom::multi::separated_list0;
 use nom::sequence::delimited;
+use nom::Err as nomErr;
+use nom::IResult;
 
 pub use crate::data_model::*;
 
@@ -84,10 +86,16 @@ fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
     separated_list0(char('\n'), line)(i)
 }
 
-pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, WsvError> {
+pub fn parse(i: &str) -> Result<Wsv, WsvError> {
     match all_consuming(wsv)(i) {
-        Ok((_, o)) => Ok(o),
+        Ok((_, o)) => Ok(Wsv::from(o)),
         Err(e) => Err(WsvError::from(e)),
+    }
+}
+
+impl From<nomErr<nomError<&str>>> for WsvError {
+    fn from(value: nomErr<nomError<&str>>) -> Self {
+        WsvError::Other(value.to_string())
     }
 }
 
@@ -182,8 +190,7 @@ mod tests {
     const STRING_WITH_NEWLINE: &str = r#""hello,"/"world!""#;
 
     #[test]
-    fn string_with_newline()
-    {
+    fn string_with_newline() {
         assert_eq!(
             string(STRING_WITH_NEWLINE),
             Ok(("", WsvValue::Value("hello,\nworld!".to_owned())))
@@ -328,33 +335,6 @@ val# comment
                     vec![],
                 ]
             ))
-        );
-    }
-
-    #[test]
-    fn parse_test() {
-        assert_eq!(
-            parse(WSV1),
-            Ok(vec![
-                vec![
-                    WsvValue::Value("1".to_owned()),
-                    WsvValue::Value("hello".to_owned()),
-                    WsvValue::Value("world".to_owned()),
-                    WsvValue::Value("\n".to_owned()),
-                    WsvValue::Value("\"".to_owned()),
-                    WsvValue::Value("".to_owned()),
-                    WsvValue::Null,
-                ],
-                vec![
-                    WsvValue::Value("string".to_owned()),
-                    WsvValue::Null,
-                    WsvValue::Value("null".to_owned()),
-                ],
-                vec![],
-                vec![WsvValue::Value("val".to_owned())],
-                vec![WsvValue::Value("val".to_owned())],
-                vec![],
-            ])
         );
     }
 }

@@ -1,13 +1,13 @@
 use std::fs::read_to_string;
+use tracing::subscriber::set_global_default as sgd;
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber as sub;
+use wsv::Wsv;
 
-use wsv::{parse, tabulate::tabulate};
 fn main() {
+    sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
+
     let contents = read_to_string("./tests/example_files/strings.wsv").unwrap();
 
-    println!("{}", tabulate(parse(&contents).unwrap()))
-
-    // println!(
-    //     "{}",
-    //     tabulate(parse("./tests/nulls.wsv").expect("no errors"))
-    // );
+    println!("{}", Wsv::try_from(contents).unwrap())
 }

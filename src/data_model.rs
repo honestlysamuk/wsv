@@ -1,12 +1,79 @@
 use core::fmt;
+use std::fmt::Display;
 
-use crate::pest::Rule;
-use nom::error::Error as nomError;
-use nom::Err as nomErr;
-use pest::error::Error as pestError;
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::{Attribute, Cell, Color, Table};
 use thiserror::Error;
 
-#[derive(Default, Debug, PartialEq, Clone)]
+#[repr(transparent)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct Wsv(Vec<Vec<WsvValue>>);
+
+impl Default for Wsv {
+    fn default() -> Self {
+        Self(vec![vec![]])
+    }
+}
+impl Display for Wsv {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut table = Table::new();
+        table.apply_modifier(UTF8_ROUND_CORNERS);
+
+        for line in self.into_iter() {
+            table.add_row(line.iter().map(|el| {
+                match el {
+                    WsvValue::Value(val) => {
+                        if val.is_empty() {
+                            Cell::new("Empty")
+                                .add_attribute(Attribute::Bold)
+                                .fg(Color::Blue)
+                        } else {
+                            Cell::new(val)
+                        }
+                    }
+                    WsvValue::Null => Cell::new("NULL")
+                        .add_attribute(Attribute::Bold)
+                        .fg(Color::Green),
+                }
+            }));
+        }
+        write!(f, "{}", table)
+    }
+}
+impl IntoIterator for Wsv {
+    type Item = Vec<WsvValue>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+impl IntoIterator for &Wsv {
+    type Item = Vec<WsvValue>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.clone().into_iter()
+    }
+}
+
+impl From<Vec<Vec<WsvValue>>> for Wsv {
+    fn from(input: Vec<Vec<WsvValue>>) -> Self {
+        Wsv(input)
+    }
+}
+
+impl PartialEq<Wsv> for Vec<Vec<WsvValue>> {
+    fn eq(&self, other: &Wsv) -> bool {
+        other.0.eq(self)
+    }
+}
+
+impl PartialEq<Vec<Vec<WsvValue>>> for Wsv {
+    fn eq(&self, other: &Vec<Vec<WsvValue>>) -> bool {
+        self.0.eq(other)
+    }
+}
+
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub enum WsvValue {
     Value(String),
     #[default]
@@ -20,6 +87,11 @@ impl fmt::Display for WsvValue {
 
 impl From<&mut String> for WsvValue {
     fn from(string: &mut String) -> WsvValue {
+        From::from(string.as_str())
+    }
+}
+impl From<&str> for WsvValue {
+    fn from(string: &str) -> WsvValue {
         if string == "-" {
             WsvValue::Null
         } else if string.starts_with('"') && string.ends_with('"') {
@@ -29,7 +101,7 @@ impl From<&mut String> for WsvValue {
                     .replace("\"\"", "\""),
             )
         } else {
-            WsvValue::Value(string.clone())
+            WsvValue::Value(string.into())
         }
     }
 }
@@ -42,15 +114,4 @@ pub enum WsvError {
     MalformedInput(usize),
     #[error("Other Error: {0}.")]
     Other(String),
-}
-
-impl From<pestError<Rule>> for WsvError {
-    fn from(value: pestError<Rule>) -> Self {
-        WsvError::Other(value.to_string())
-    }
-}
-impl From<nomErr<nomError<&str>>> for WsvError {
-    fn from(value: nomErr<nomError<&str>>) -> Self {
-        WsvError::Other(value.to_string())
-    }
 }
