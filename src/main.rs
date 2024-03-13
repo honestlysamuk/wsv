@@ -6,9 +6,7 @@ use tracing::Level;
 use tracing_subscriber::FmtSubscriber as sub;
 use wsv::{Wsv, WsvValue};
 
-fn run() -> Result<(), Box<dyn Error>> {
-    sgd(sub::builder().with_max_level(Level::TRACE).finish())?;
-    let input = env::args_os().nth(1).unwrap().into_string().unwrap();
+fn run(input: String) -> Result<(), Box<dyn Error>> {
     let contents =
         read_to_string::<String>("./tests/example_files/".to_string() + &input + ".wsv")?;
 
@@ -33,7 +31,9 @@ fn run() -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
-    if let Err(err) = run() {
+    sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
+    let input = env::args_os().nth(1).unwrap().into_string().unwrap();
+    if let Err(err) = run(input) {
         println!("{:?}", err);
         process::exit(1);
     }

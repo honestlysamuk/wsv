@@ -1,6 +1,25 @@
 A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes
 on https://honestlysam.uk/
 
+# 0.3.1
+
+### Wednesday 13th March 2024
+
+Added implementation of primitive2 after a lot of pain and heartache. Added dependency to itertools for it. The form is very similar to the primitive implementation but the detail is far worse. I wonder if there is a mathematical equivalence somewhere. Read up on Serde implementations of other data formats and prepped for that stage. Tidied up integration tests.
+
+Produced a somewhat large file to do benchmarking against. Now need to learn one of those frameworks. Divan looks good. I will compress my sample inputs into const strings in one file, so I remove all I/O from the integration tests and benchmarks.
+
+Added minimal CLI support to take integration test files only. Panics otherwise.
+
+TODO:
+
+1. Fix error tests on nom and pest. Learn how to handle errors better.
+2. feature gates for all parsers.
+3. Serde implementation
+4. Benchmarking: Learn Divan or Criterion
+5. Documentation
+6. Shift integration tests to unit or doc tests
+
 # 0.3.0
 
 ### Monday 11th March 2024
