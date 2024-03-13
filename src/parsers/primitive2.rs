@@ -5,13 +5,14 @@
 //! Enjoy!
 
 use crate::data_model::*;
-use std::collections::VecDeque;
+use itertools::{Itertools, Position};
 use tracing::debug;
 
 pub fn parse(i: &str) -> Result<Wsv, WsvError> {
     if i.is_empty() {
         Ok(Default::default())
     } else {
+        // Can't collect directly into Result<Wsv, WsvError> so needed a minor additional match.
         match i
             .split('\n')
             .enumerate()
@@ -25,18 +26,23 @@ pub fn parse(i: &str) -> Result<Wsv, WsvError> {
 }
 
 fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvError> {
-    let line = line.trim_matches(|c: char| c.is_whitespace());
-    let mut input = String::new();
+    let line_number = line_index + 1;
+    let mut line_without_comment = String::new();
+    // Since we haven't identified those hashes which are parts of strings yet, it's not clear if
+    // the part before the first hash is the whole real input. If parsing that fails, it might be
+    // because we excluded too much of the initial string.
     for line_before_comment in line.split('#') {
-        input.push_str(line_before_comment);
-
-        match parse_line_without_comments((line_index + 1, &input)) {
-            Ok(result) => return Ok(result),
-            Err(WsvError::MalformedInput(e)) => return Err(WsvError::MalformedInput(e)),
-            Err(_) => { /* try again */ }
+        line_without_comment += line_before_comment;
+        let even_number_of_quotes = line_without_comment.split('\"').count() % 2 == 1;
+        if even_number_of_quotes {
+            match parse_line_without_comments((line_number, &line_without_comment)) {
+                Ok(result) => return Ok(result),
+                Err(WsvError::MalformedInput(e)) => return Err(WsvError::MalformedInput(e)),
+                Err(_) => { /* try again */ }
+            }
         }
     }
-    Err(WsvError::DoubleQuotesMismatch(line_index + 1))
+    Err(WsvError::DoubleQuotesMismatch(line_number))
 }
 
 fn parse_line_without_comments(
@@ -44,114 +50,69 @@ fn parse_line_without_comments(
 ) -> Result<Vec<WsvValue>, WsvError> {
     let mut result: Vec<WsvValue> = Vec::new();
     let mut string = String::new();
-    let mut index = 0;
-    let count = line.split('\"').count();
-    let parts = line.split('\"').enumerate();
 
-    for (i, part) in parts {
-        if let Err(e) = process_parts(
-            i,
-            part,
-            count,
-            line_number,
-            &mut result,
-            &mut string,
-            &mut index,
-        ) {
-            return Err(e);
-        }
-    }
-
-    if !string.is_empty() {
-        result.push(WsvValue::new(&mut string));
-        debug!(order = "sixth", line = ?result);
-        string.clear();
-    }
-    if index % 2 == 1 {
-        Err(WsvError::DoubleQuotesMismatch(line_number))
-    } else {
-        Ok(result)
-    }
-}
-
-#[tracing::instrument]
-fn process_parts(
-    i: usize,
-    part: &str,
-    count: usize,
-    y: usize,
-    result: &mut Vec<WsvValue>,
-    string: &mut String,
-    index: &mut usize,
-) -> Result<(), WsvError> {
-    let first = i == 0 && count > 1;
-    let last = i == count - 1 && count > 1;
-    let only = i == 0 && count == 1;
-    *index = i;
-
-    tracing::debug!(only, first, last);
-
-    if only {
-        result.append(&mut process_part(part).0.into());
-    } else if first {
-        let (these_parts, _, trailing_ws) = process_part(part);
-        if !trailing_ws && !part.is_empty() {
-            debug!(error = "No trailing whitespace.", ?result);
-            return Err(WsvError::MalformedInput(y));
-        } else {
-            result.append(&mut these_parts.into());
-        }
-    } else if last {
-        let (these_parts, leading_ws, _) = process_part(part);
-        if !leading_ws && !part.is_empty() {
-            debug!(error = "No leading whitespace.", ?result);
-            return Err(WsvError::MalformedInput(y));
-        } else {
-            result.push(WsvValue::new(string));
-            string.clear();
-            result.append(&mut these_parts.into());
-        }
-    } else {
-        if i % 2 == 1 {
-            string.push_str(part);
-        } else {
-            match process_string_part(part) {
-                Decision::SpecialCharacter(ch) => string.push(ch),
-                Decision::EndOfString => {
-                    if !string.is_empty() {
-                        result.push(WsvValue::new(string));
-                        string.clear();
-                    };
-                    let (these_parts, leading_ws, trailing_ws) = process_part(part);
-                    if leading_ws && trailing_ws {
-                        result.append(&mut these_parts.into());
-                    } else {
-                        debug!(error = "No leading or trailing whitespace.", ?result);
-                        return Err(WsvError::MalformedInput(y));
+    for (i, (position, part)) in line.split('\"').with_position().enumerate() {
+        match position {
+            Position::Only => result.append(&mut process_part(part).0.into()),
+            Position::First => {
+                let (these_parts, _, trailing_ws) = process_part(part);
+                if !trailing_ws && !part.is_empty() {
+                    debug!(error = "No trailing whitespace", part);
+                    return Err(WsvError::MalformedInput(line_number));
+                } else {
+                    result.append(&mut these_parts.into());
+                }
+            }
+            Position::Last => {
+                let (these_parts, leading_ws, _) = process_part(part);
+                if !leading_ws && !part.is_empty() {
+                    debug!(error = "No leading whitespace", part);
+                    return Err(WsvError::MalformedInput(line_number));
+                } else {
+                    result.push(WsvValue::new(&mut string));
+                    string.clear();
+                    result.append(&mut these_parts.into());
+                }
+            }
+            Position::Middle => {
+                if i % 2 == 1 {
+                    string.push_str(part);
+                } else {
+                    match identify_string_part(part) {
+                        Decision::SpecialCharacter(ch) => string.push(ch),
+                        Decision::EndOfString => {
+                            if !string.is_empty() {
+                                result.push(WsvValue::new(&mut string));
+                                string.clear();
+                            };
+                            let (these_parts, leading_ws, trailing_ws) = process_part(part);
+                            if !leading_ws || !trailing_ws {
+                                debug!(error = "Either no leading or no trailing whitespace", part);
+                                return Err(WsvError::MalformedInput(line_number));
+                            } else {
+                                result.append(&mut these_parts.into());
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    Ok(())
+    Ok(result)
 }
 
-fn process_part(main_part: &str) -> (VecDeque<WsvValue>, bool, bool) {
-    let length = main_part.chars().count();
+/// returns the processed part but remembers if there was leading or trailing whitespace.
+fn process_part(main_part: &str) -> (Vec<WsvValue>, bool, bool) {
+    let len = main_part.chars().count();
     let chars = main_part.chars().collect::<Vec<char>>();
-    let leading_ws = length == 0 || chars.first().unwrap().is_whitespace();
-    let trailing_ws = length == 0 || chars.last().unwrap().is_whitespace();
-
-    let split = main_part.split_whitespace().collect::<VecDeque<&str>>();
-    debug!(?split);
     (
-        split.iter().map(|s| WsvValue::from(*s)).collect(),
-        leading_ws,
-        trailing_ws,
+        main_part.split_whitespace().map(WsvValue::from).collect(),
+        len == 0 || chars[0].is_whitespace(),
+        len == 0 || chars[len - 1].is_whitespace(),
     )
 }
 
-fn process_string_part(string_part: &str) -> Decision {
+fn identify_string_part(string_part: &str) -> Decision {
     debug!(string_part);
     if string_part == "/" {
         Decision::SpecialCharacter('\n')
