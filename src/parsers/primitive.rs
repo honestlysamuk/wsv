@@ -16,7 +16,7 @@ pub fn parse(i: &str) -> Result<Wsv, WsvError> {
     }
 }
 
-fn parse_line((line_number, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvError> {
+fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvError> {
     let mut values: Vec<WsvValue> = Vec::new();
     let mut buf: String = String::new();
     let mut open_quotes: bool = false;
@@ -27,7 +27,7 @@ fn parse_line((line_number, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvEr
                     open_quotes = !open_quotes;
                     buf.push(c);
                 } else {
-                    return Err(WsvError::MalformedInput(line_number));
+                    return Err(WsvError::MalformedInput(line_index + 1));
                 }
             }
             '#' => {
@@ -55,7 +55,7 @@ fn parse_line((line_number, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvEr
     }
 
     if open_quotes {
-        Err(WsvError::DoubleQuotesMismatch(line_number))
+        Err(WsvError::DoubleQuotesMismatch(line_index + 1))
     } else {
         Ok(values)
     }

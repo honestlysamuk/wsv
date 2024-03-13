@@ -9,7 +9,7 @@ pub use crate::parsers::pest;
 pub use crate::parsers::primitive;
 pub use crate::parsers::primitive2;
 
-pub use crate::parsers::primitive::parse;
+pub use crate::parsers::pest::parse;
 
 impl TryFrom<&str> for Wsv {
     type Error = WsvError;

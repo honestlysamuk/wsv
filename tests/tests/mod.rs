@@ -115,10 +115,9 @@ pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
 pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let contents = read_to_string("./tests/example_files/odd_quotes.wsv").unwrap();
     match parse(&contents) {
+        Err(WsvError::DoubleQuotesMismatch(2)) => println!("successful"),
         Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
-        Err(e) => {
-            println!("{e:?}")
-        }
+        Err(e) => panic!("Wrong error message. got {e}"),
     }
 }
 

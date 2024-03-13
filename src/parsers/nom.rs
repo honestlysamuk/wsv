@@ -14,7 +14,7 @@ use nom::sequence::delimited;
 use nom::Err as nomErr;
 use nom::IResult;
 
-pub use crate::data_model::*;
+use crate::data_model::*;
 
 fn ws0(i: &str) -> IResult<&str, &str> {
     take_while(|c: char| c.is_whitespace() && c != '\n')(i)
@@ -55,6 +55,7 @@ fn value(i: &str) -> IResult<&str, WsvValue> {
     )(i)
 }
 
+#[tracing::instrument]
 fn string(i: &str) -> IResult<&str, WsvValue> {
     map(
         delimited(
@@ -70,8 +71,9 @@ fn comment(i: &str) -> IResult<&str, &str> {
     let (i, _) = tag("#")(i)?;
     take_till(|c| c == '\n')(i)
 }
-
+#[tracing::instrument]
 fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
+    println!("{i}");
     let (i, _) = ws0(i)?;
     let (i, o) = separated_list0(ws1, alt((null, string, value)))(i)?;
     let (i, _) = ws0(i)?;

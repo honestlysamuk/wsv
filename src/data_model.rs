@@ -7,7 +7,7 @@ use thiserror::Error;
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct Wsv(Vec<Vec<WsvValue>>);
+pub struct Wsv(pub Vec<Vec<WsvValue>>);
 
 impl Default for Wsv {
     fn default() -> Self {
@@ -78,6 +78,13 @@ pub enum WsvValue {
     Value(String),
     #[default]
     Null,
+}
+
+impl WsvValue {
+    #[tracing::instrument]
+    pub fn new(i: &str) -> Self {
+        WsvValue::Value(i.into())
+    }
 }
 impl fmt::Display for WsvValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
