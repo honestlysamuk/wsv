@@ -1,3 +1,7 @@
+//! This is the implementation of the pest deserialisation parser for WSV.
+//!
+//! It uses the wsv.pest grammar in the same file to produce a tree that is processed easily in the function. The error handling could be improved, but the Pest Error type has a generic and I don't yet know how to handle that in a pretty way, so I'm just .to_string()ing it for now. It's also heavily nested, but I don't see any value in splitting off an internal function to handle the string parsing, for example, unless it aids in Error handling. I am working my way through Luca Palmieri's article on errors and am looking to apply the same principles here.
+
 use pest::error::Error as pestError;
 use pest::Parser;
 use pest_derive::Parser;
@@ -6,7 +10,7 @@ use crate::data_model::*;
 
 #[derive(Parser)]
 #[grammar = "parsers/wsv.pest"]
-pub struct WsvParser;
+struct WsvParser;
 
 pub fn parse(i: &str) -> Result<Wsv, WsvError> {
     Ok(Wsv::from(
