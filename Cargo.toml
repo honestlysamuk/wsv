@@ -21,11 +21,19 @@ pest_derive = "2"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 itertools = "0.12.1"
+#divan = "0.1.14"
 #nom = { version = "7", optional = true }
 #pest = { version = "2", optional = true }
 #pest_derive = { version = "2", optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["html_reports"] }
 
 #[features]
 #nom = ["dep:nom"]
 #pest = ["dep:pest", "dep:pest_derive"]
 #example = ["dep:tracing-subscriber", "dep:comfy-table"]
+
+[[bench]]
+name = "dest"
+harness = false

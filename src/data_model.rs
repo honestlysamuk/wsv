@@ -102,6 +102,14 @@ impl From<&str> for WsvValue {
         if string == "-" {
             WsvValue::Null
         } else if string.starts_with('"') && string.ends_with('"') {
+            // let val = string[1..string.len() - 1]
+            //     .split("\"")
+            //     .map(|c| match c {
+            //         "" => "\"",
+            //         "/" => "\n",
+            //         _ => c,
+            //     })
+            //     .collect::<String>();
             WsvValue::Value(
                 string[1..string.len() - 1]
                     .replace("\"/\"", "\n")

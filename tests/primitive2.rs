@@ -38,3 +38,15 @@ fn odd_quotes() {
 fn parse_example() {
     parse_test(&parse)
 }
+#[test]
+fn single_slash() {
+    single_slash_test(&parse)
+}
+#[test]
+fn empty_string() {
+    empty_string_test(&parse)
+}
+#[test]
+fn trailing_return() {
+    trailing_return_test(&parse)
+}

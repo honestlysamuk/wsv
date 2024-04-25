@@ -1,18 +1,31 @@
+use std::env;
 use std::error::Error;
 use std::fs::read_to_string;
-use std::{env, process};
 use tracing::subscriber::set_global_default as sgd;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber as sub;
 use wsv::{Wsv, WsvValue};
+// rust-analyzer.inlayHints.typeHints.enable
+
+fn main() {
+    sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
+    let input = env::args().nth(1).unwrap();
+    if let Err(err) = run(input) {
+        println!("{:?}", err);
+    }
+}
+
+// for record in WsvReader::builder().(file)?.into_iter() {
+//     let country: Country = record.deserialize()?;
+//     println!("{country:?}");
+// }
 
 fn run(input: String) -> Result<(), Box<dyn Error>> {
     let contents =
-        read_to_string::<String>("./tests/example_files/".to_string() + &input + ".wsv")?;
+        read_to_string::<String>(["./tests/example_files/", &input, ".wsv"].concat())?;
 
     let wsv = Wsv::try_from(contents.as_str())?;
 
-    println!("{wsv:#?}");
     let sum = wsv
         .into_iter()
         .map(|row| {
@@ -30,11 +43,3 @@ fn run(input: String) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn main() {
-    sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
-    let input = env::args_os().nth(1).unwrap().into_string().unwrap();
-    if let Err(err) = run(input) {
-        println!("{:?}", err);
-        process::exit(1);
-    }
-}

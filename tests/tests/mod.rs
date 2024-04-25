@@ -1,7 +1,24 @@
 use std::fs::read_to_string;
 use wsv::Wsv;
 use wsv::WsvError;
-use wsv::WsvValue as w;
+use wsv::WsvValue;
+
+macro_rules! do_test {
+    ($parser:ident, $input:expr, $output:expr) => {
+        match $parser(&$input) {
+            Ok(wsv) => {
+                assert_eq!(wsv, $output);
+            }
+            Err(error) => {
+                panic!("Shouldn't Err. Got {error}")
+            }
+        }
+    };
+}
+
+pub fn v(inp: &str) -> WsvValue {
+    WsvValue::Value(inp.to_owned())
+}
 
 pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
@@ -23,107 +40,73 @@ pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
 
 pub fn comments_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/comments.wsv").unwrap();
-    let output = vec![vec![], vec![w::Value("CommentExample".to_owned())]];
-
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+    let output = vec![vec![], vec![v("CommentExample")]];
+    do_test!(parse, input, output);
 }
 
 pub fn not_null_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/not_null.wsv").unwrap();
-    let output = vec![vec![w::Value("-".to_owned())]];
+    let output = vec![vec![v("-")]];
+    do_test!(parse, input, output);
+}
 
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+pub fn single_slash_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+    let input = read_to_string("./tests/example_files/single_slash.wsv").unwrap();
+    let output = vec![vec![v("/")]];
+    do_test!(parse, input, output);
 }
 
 pub fn empty_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/empty.wsv").unwrap();
-    let output: Vec<Vec<w>> = vec![vec![]];
+    let output = vec![vec![]];
+    do_test!(parse, input, output);
+}
 
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+pub fn trailing_return_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+    let input = read_to_string("./tests/example_files/trailing_return.wsv").unwrap();
+    let output = vec![vec![v("5"), v(""), v("6")], vec![]];
+    do_test!(parse, input, output);
+}
+
+pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+    let input = read_to_string("./tests/example_files/empty_string.wsv").unwrap();
+    let output = vec![
+        vec![v("1"), v(""), v("2")],
+        vec![v("")],
+        vec![v(""), v("")],
+        vec![v("3"), v(""), v("4")],
+        vec![v("5"), v(""), v("6")],
+    ];
+    do_test!(parse, input, output);
 }
 
 pub fn null_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/nulls.wsv").unwrap();
     let output = vec![
-        vec![
-            w::Value("nullExample".to_owned()),
-            w::Null,
-            w::Value("2".to_owned()),
-        ],
-        vec![w::Null],
-        vec![w::Null, w::Value("2".to_owned())],
-        vec![w::Value("3".to_owned()), w::Null],
+        vec![v("nullExample"), WsvValue::Null, v("2")],
+        vec![WsvValue::Null],
+        vec![WsvValue::Null, v("2")],
+        vec![v("3"), WsvValue::Null],
     ];
-
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+    do_test!(parse, input, output);
 }
 
 pub fn numbers_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/numbers.wsv").unwrap();
-    let output = vec![vec![
-        w::Value("1".to_owned()),
-        w::Value("2.0".to_owned()),
-        w::Value("3.4.5".to_owned()),
-        w::Value("6.789".to_owned()),
-    ]];
-
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+    let output = vec![vec![v("1"), v("2.0"), v("3.4.5"), v("6.789")]];
+    do_test!(parse, input, output);
 }
 
 pub fn strings_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/strings.wsv").unwrap();
     let output = vec![
-        vec![w::Value("hello".to_owned())],
-        vec![w::Value("it's".to_owned()), w::Value("me".to_owned())],
-        vec![w::Value(
-            "I was wondering if \" after all these ".to_owned(),
-        )],
-        vec![w::Value("years you'd like\nto meet".to_owned())],
+        vec![v("hello")],
+        vec![v("it's"), v(""), v("me")],
+        vec![v("I was wondering")],
+        vec![v(" if \" after all these ")],
+        vec![v("years"), v(""), v(" you'd like\nto meet")],
     ];
-
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+    do_test!(parse, input, output);
 }
 
 pub fn parse_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
@@ -131,32 +114,20 @@ pub fn parse_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let output = vec![
         vec![],
         vec![
-            w::Value("1".to_owned()),
-            w::Value("hello".to_owned()),
-            w::Value("world".to_owned()),
-            w::Value("\n".to_owned()),
-            w::Value("\"".to_owned()),
-            w::Value("".to_owned()),
-            w::Null,
+            v("1"),
+            v("hello"),
+            v("world"),
+            v("\n"),
+            v("\""),
+            v(""),
+            WsvValue::Null,
         ],
-        vec![
-            w::Value("string".to_owned()),
-            w::Null,
-            w::Value("null".to_owned()),
-        ],
+        vec![v("string"), WsvValue::Null, v("null")],
         vec![],
         vec![],
-        vec![w::Value("val".to_owned())],
-        vec![w::Value("val".to_owned())],
+        vec![v("val")],
+        vec![v("val")],
         vec![],
     ];
-
-    match parse(&input) {
-        Ok(wsv) => {
-            assert_eq!(wsv, output);
-        }
-        Err(error) => {
-            panic!("Shouldn't Err. Got {error}")
-        }
-    }
+    do_test!(parse, input, output);
 }
