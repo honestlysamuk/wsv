@@ -12,5 +12,5 @@ Value   = @{ (!("\n" | "\"" | "#" | WHITESPACE) ~ ANY)+ }
 String  = ${ ("\"" ~ (DoubleQuote | NewLine | StringPart)* ~ "\"") }
 Comment = _{ "#" ~ (!"\n" ~ ANY)* ~ &("\n" | EOI) }
 
-Line =  ${ (Null | String | Value)? ~ (WHITESPACE ~ (Null | String | Value))* ~ WHITESPACE? ~ Comment? }
+Line =  ${ (Null | String | Value)? ~ (WHITESPACE+ ~ (Null | String | Value))* ~ WHITESPACE* ~ Comment? }
 Wsv  =  { SOI ~ Line ~ ("\n" ~ Line)* ~ EOI }
