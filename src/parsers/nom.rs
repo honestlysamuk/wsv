@@ -73,7 +73,6 @@ fn comment(i: &str) -> IResult<&str, &str> {
 }
 #[tracing::instrument]
 fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
-    println!("{i}");
     let (i, _) = ws0(i)?;
     let (i, o) = separated_list0(ws1, alt((null, string, value)))(i)?;
     let (i, _) = ws0(i)?;
