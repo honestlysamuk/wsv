@@ -40,7 +40,11 @@ pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
 
 pub fn comments_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/comments.wsv").unwrap();
-    let output = vec![vec![], vec![v("CommentExample")], vec![v("but"), v(" # "), v("is"), v("fine")]];
+    let output = vec![
+        vec![],
+        vec![v("CommentExample")],
+        vec![v("but"), v(" # "), v("is"), v("fine")],
+    ];
     do_test!(parse, input, output);
 }
 

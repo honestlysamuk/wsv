@@ -85,10 +85,8 @@ fn parse_line_without_comments(
                     match identify_string_part(part) {
                         Decision::SpecialCharacter(ch) => string.push(ch),
                         Decision::EndOfString => {
-                            if !string.is_empty() {
-                                result.push(WsvValue::new(&mut string));
-                                string.clear();
-                            };
+                            result.push(WsvValue::new(&mut string));
+                            string.clear();
                             let (these_parts, leading_ws, trailing_ws) = process_part(part);
                             if !leading_ws || !trailing_ws {
                                 debug!(error = "Either no leading or no trailing whitespace", part);
