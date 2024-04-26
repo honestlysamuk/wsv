@@ -1,6 +1,21 @@
 A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes
 on https://honestlysam.uk/
 
+# 0.3.2
+
+### Friday 26th April 2024
+
+Fixed bugs with primitive2 and pest. Added more tests, and added benchmarks with Criterion. The results demonstrate that primitive and nom are about as fast as each other, with nom a touch faster, primitive2 is over 50% slower than primitive, and pest is anywhere between 80% and 300% slower than primitive.
+
+TODO:
+
+1. Fix error tests on nom and pest. Learn how to handle errors better.
+2. feature gates for all parsers.
+3. Serde implementation
+4. Shift integration tests to unit or doc tests
+5. Benchmarking: Learn Divan
+6. Documentation
+
 # 0.3.1
 
 ### Wednesday 13th March 2024

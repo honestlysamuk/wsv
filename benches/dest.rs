@@ -8,32 +8,7 @@ pub use wsv::primitive2;
 pub use wsv::nom;
 pub use wsv::pest;
 
-
-// fn nulls(c: &mut Criterion) {
-//     let name = "nulls";
-//     let contents =
-//     read_to_string::<String>("./tests/example_files/".to_string() + "nulls.wsv").unwrap();
-//     let inp = contents.as_str();
-//     c.bench_function(&[name, " primitive 20"].concat(), |b| b.iter(|| primitive::parse(black_box(inp)).unwrap()));
-//     c.bench_function(&[name, " primitive2 20"].concat(), |b| b.iter(|| primitive2::parse(black_box(inp)).unwrap()));
-//     c.bench_function(&[name, " nom 20"].concat(), |b| b.iter(|| nom::parse(black_box(inp)).unwrap()));
-//     c.bench_function(&[name, " pest 20"].concat(), |b| b.iter(|| pest::parse(black_box(inp)).unwrap()));
-// }
-
-// fn big(c: &mut Criterion) {
-//     let name = "nulls";
-//     let contents =
-//     read_to_string::<String>("./tests/example_files/".to_string() + "big.wsv").unwrap();
-//     let inp = contents.as_str();
-//     c.bench_function(&[name, " primitive 20"].concat(), |b| b.iter(|| primitive::parse(black_box(inp)).unwrap()));
-//     c.bench_function(&[name, " primitive2 20"].concat(), |b| b.iter(|| primitive2::parse(black_box(inp)).unwrap()));
-//     c.bench_function(&[name, " nom 20"].concat(), |b| b.iter(|| nom::parse(black_box(inp)).unwrap()));
-//     c.bench_function(&[name, " pest 20"].concat(), |b| b.iter(|| pest::parse(black_box(inp)).unwrap()));
-// }
-
 fn bench_static_parse(c: &mut Criterion) {
-    //     let name = "nulls";
-
     let mut group = c.benchmark_group("StaticParse");
 
     let contents =

@@ -26,8 +26,8 @@ fn run(input: String) -> Result<(), Box<dyn Error>> {
 
     let wsv = Wsv::try_from(contents.as_str())?;
 
-    let sum = wsv
-        .into_iter()
+    let sum = wsv.0
+        .iter()
         .map(|row| {
             if let Some(WsvValue::Value(string)) = row.first() {
                 string.len()
@@ -39,7 +39,7 @@ fn run(input: String) -> Result<(), Box<dyn Error>> {
 
     println!("done: {}", sum);
     println!();
-    println!("{contents}");
+    println!("{wsv}");
     Ok(())
 }
 
