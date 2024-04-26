@@ -32,7 +32,11 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
     // the part before the first hash is the whole real input. If parsing that fails, it might be
     // because we excluded too much of the initial string.
     for line_before_comment in line.split('#') {
-        line_without_comment += line_before_comment;
+        if line_without_comment.is_empty() {
+            line_without_comment += line_before_comment;
+        } else {
+            line_without_comment = line_without_comment + "#" + line_before_comment;
+        }
         let even_number_of_quotes = line_without_comment.split('\"').count() % 2 == 1;
         if even_number_of_quotes {
             match parse_line_without_comments((line_number, &line_without_comment)) {

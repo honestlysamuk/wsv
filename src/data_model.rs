@@ -6,7 +6,7 @@ use comfy_table::{Attribute, Cell, Color, Table};
 use thiserror::Error;
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct Wsv(pub Vec<Vec<WsvValue>>);
 
 impl Default for Wsv {
@@ -14,6 +14,13 @@ impl Default for Wsv {
         Self(vec![vec![]])
     }
 }
+
+impl fmt::Debug for Wsv {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
 impl Display for Wsv {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut table = Table::new();

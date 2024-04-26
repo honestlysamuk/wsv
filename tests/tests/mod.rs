@@ -40,7 +40,7 @@ pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
 
 pub fn comments_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/comments.wsv").unwrap();
-    let output = vec![vec![], vec![v("CommentExample")]];
+    let output = vec![vec![], vec![v("CommentExample")], vec![v("but"), v(" # "), v("is"), v("fine")]];
     do_test!(parse, input, output);
 }
 
@@ -64,18 +64,22 @@ pub fn empty_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
 
 pub fn trailing_return_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/trailing_return.wsv").unwrap();
-    let output = vec![vec![v("5"), v(""), v("6")], vec![]];
+    let output = vec![vec![v("5")], vec![]];
     do_test!(parse, input, output);
 }
 
 pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let input = read_to_string("./tests/example_files/empty_string.wsv").unwrap();
     let output = vec![
-        vec![v("1"), v(""), v("2")],
         vec![v("")],
+        vec![v("1")],
+        vec![v("2"), v("3")],
+        vec![v("4"), v("")],
+        vec![v(""), v("5")],
         vec![v(""), v("")],
-        vec![v("3"), v(""), v("4")],
-        vec![v("5"), v(""), v("6")],
+        vec![v("6"), v(""), v("7")],
+        vec![v("8"), v(""), v("9")],
+        vec![v("a"), v(""), v("b")],
     ];
     do_test!(parse, input, output);
 }
