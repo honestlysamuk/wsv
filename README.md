@@ -3,6 +3,20 @@ on https://honestlysam.uk/
 
 # 0.3.2
 
+### Sunday 28th April 2024
+
+Fixed trailing whitespace bug with primitive. Renamed primitive2 to split. Added more tests. Feature gated the nom and pest parsers behind the feature gates "nom" and "pest".
+
+TODO:
+
+1. Serde implementation
+2. Shift focus to line parsing, in prep for stream parsing.
+2. Shift integration tests to unit or doc tests. Integration tests need to be different now, since serde does not have the halfway point I am currently testing to.
+3. Benchmarking: Learn Divan
+4. Learn how to handle errors better.
+5. Documentation
+
+
 ### Friday 26th April 2024
 
 Fixed bugs with primitive2 and pest. Added more tests, and added benchmarks with Criterion. The results demonstrate that primitive and nom are about as fast as each other, with nom a touch faster, primitive2 is over 50% slower than primitive, and pest is anywhere between 80% and 300% slower than primitive.
