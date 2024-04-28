@@ -21,6 +21,7 @@ fn main() {
 // }
 
 fn run(input: String) -> Result<(), Box<dyn Error>> {
+
     let contents =
         read_to_string::<String>(["./tests/example_files/", &input, ".wsv"].concat())?;
 

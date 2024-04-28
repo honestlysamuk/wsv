@@ -1,4 +1,5 @@
 use crate::data_model::*;
+use tracing::debug;
 
 pub fn parse(i: &str) -> Result<Wsv, WsvError> {
     if i.is_empty() {
@@ -27,6 +28,7 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
                     open_quotes = !open_quotes;
                     buf.push(c);
                 } else {
+                    debug!(error = "No leading whitespace", buf);
                     return Err(WsvError::MalformedInput(line_index + 1));
                 }
             }
@@ -41,44 +43,39 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
                 if open_quotes {
                     buf.push(c);
                 } else if !buf.is_empty() {
-                    values.push(parse_value(&mut buf));
+                    values.push(parse_value(&mut buf, line_index + 1)?);
                     buf.clear();
                 }
                 // ignore otherwise
             }
-            _ => buf.push(c),
+            _ => {
+                buf.push(c);
+            }
         }
     }
 
     if !buf.is_empty() {
-        values.push(parse_value(&mut buf));
+        values.push(parse_value(&mut buf, line_index + 1)?);
     }
 
-    if open_quotes {
+    if dbg!(open_quotes) {
         Err(WsvError::DoubleQuotesMismatch(line_index + 1))
     } else {
         Ok(values)
     }
 }
 
-fn parse_value(string: &mut str) -> WsvValue {
-    if string == "-" {
-        WsvValue::Null
-    } else if string.starts_with('"') && string.ends_with('"') {
-        WsvValue::Value(
-            string[1..string.len() - 1]
-                .replace("\"/\"", "\n")
-                .replace("\"\"", "\""),
-        )
+fn parse_value(buf: &mut str, line_index: usize) -> Result<WsvValue, WsvError> {
+    if buf == "-" {
+        Ok(WsvValue::Null)
+    } else if buf.starts_with('"') && buf.ends_with('"') {
+        Ok(WsvValue::Value(buf[1..buf.len() - 1]
+            .replace("\"/\"", "\n")
+            .replace("\"\"", "\"")))
+    } else if buf.starts_with('"') && !buf.ends_with('"') {
+        debug!(error = "No trailing whitespace", buf);
+        Err(WsvError::MalformedInput(line_index + 1))
     } else {
-        WsvValue::Value(string.into())
+        Ok(WsvValue::Value(buf.into()))
     }
-                    // let val = string[1..string.len() - 1]
-            //     .split("\"")
-            //     .map(|c| match c {
-            //         "" => "\"",
-            //         "/" => "\n",
-            //         _ => c,
-            //     })
-            //     .collect::<String>();
 }
