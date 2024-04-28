@@ -1,3 +1,4 @@
+#![cfg(feature = "pest")]
 mod tests;
 use crate::tests::*;
 use wsv::pest::parse;
@@ -49,4 +50,12 @@ fn empty_string() {
 #[test]
 fn trailing_return() {
     trailing_return_test(&parse)
+}
+#[test]
+fn no_leading_whitespace() {
+    no_leading_whitespace_test(&parse)
+}
+#[test]
+fn no_trailing_whitespace() {
+    no_trailing_whitespace_test(&parse)
 }

@@ -1,18 +1,13 @@
-use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::bytes::complete::take_till;
-use nom::bytes::complete::take_while;
-use nom::character::complete::char;
-use nom::combinator::all_consuming;
-use nom::combinator::map;
-use nom::combinator::value as ifthen;
-use nom::combinator::verify;
-use nom::error::Error as nomError;
-use nom::multi::many0;
-use nom::multi::separated_list0;
-use nom::sequence::delimited;
-use nom::Err as nomErr;
-use nom::IResult;
+pub(crate) use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_till, take_while},
+    character::complete::char,
+    combinator::{all_consuming, map, value as ifthen, verify},
+    error::Error as nomError,
+    multi::{many0, separated_list0},
+    sequence::delimited,
+    Err as nomErr, IResult,
+};
 
 use crate::data_model::*;
 

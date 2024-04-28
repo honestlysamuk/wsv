@@ -108,7 +108,14 @@ fn process_part(main_part: &str) -> (Vec<WsvValue>, bool, bool) {
     let len = main_part.chars().count();
     let chars = main_part.chars().collect::<Vec<char>>();
     (
-        main_part.split_whitespace().map(WsvValue::from).collect(),
+        // main part only consists of values and nulls, defined by the original spec.
+        main_part
+            .split_whitespace()
+            .map(|str| match str {
+                "-" => WsvValue::Null,
+                _ => WsvValue::new(str),
+            })
+            .collect(),
         len == 0 || chars[0].is_whitespace(),
         len == 0 || chars[len - 1].is_whitespace(),
     )

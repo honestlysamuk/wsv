@@ -41,7 +41,7 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
                 if open_quotes {
                     buf.push(c);
                 } else if !buf.is_empty() {
-                    values.push(WsvValue::from(&mut buf));
+                    values.push(parse_value(&mut buf));
                     buf.clear();
                 }
                 // ignore otherwise
@@ -51,7 +51,7 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
     }
 
     if !buf.is_empty() {
-        values.push(WsvValue::from(&mut buf));
+        values.push(parse_value(&mut buf));
     }
 
     if open_quotes {
@@ -59,4 +59,26 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
     } else {
         Ok(values)
     }
+}
+
+fn parse_value(string: &mut str) -> WsvValue {
+    if string == "-" {
+        WsvValue::Null
+    } else if string.starts_with('"') && string.ends_with('"') {
+        WsvValue::Value(
+            string[1..string.len() - 1]
+                .replace("\"/\"", "\n")
+                .replace("\"\"", "\""),
+        )
+    } else {
+        WsvValue::Value(string.into())
+    }
+                    // let val = string[1..string.len() - 1]
+            //     .split("\"")
+            //     .map(|c| match c {
+            //         "" => "\"",
+            //         "/" => "\n",
+            //         _ => c,
+            //     })
+            //     .collect::<String>();
 }

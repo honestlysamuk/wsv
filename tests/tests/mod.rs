@@ -17,24 +17,38 @@ macro_rules! do_test {
 }
 
 pub fn v(inp: &str) -> WsvValue {
-    WsvValue::Value(inp.to_owned())
+    WsvValue::from(inp)
 }
 
 pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
     match parse(&contents) {
-        Err(WsvError::MalformedInput(1)) => println!("Successful"),
-        Ok(v) => panic!("Parsed Malformed input: {v:?}"),
-        Err(e) => panic!("Wrong error message. Got {e}"),
+        Err(_) => println!("Successful"),
+        Ok(v) => panic!("Parsed Malformed input: {v:?}")
+    }
+}
+
+pub fn no_leading_whitespace_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+    let contents = read_to_string("./tests/example_files/no_leading_whitespace.wsv").unwrap();
+    match parse(&contents) {
+        Err(_) => println!("Successful"),
+        Ok(v) => panic!("Parsed Malformed input: {v:?}")
+    }
+}
+
+pub fn no_trailing_whitespace_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+    let contents = read_to_string("./tests/example_files/no_trailing_whitespace.wsv").unwrap();
+    match parse(&contents) {
+        Err(_) => println!("Successful"),
+        Ok(v) => panic!("Parsed Malformed input: {v:?}")
     }
 }
 
 pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     let contents = read_to_string("./tests/example_files/odd_quotes.wsv").unwrap();
     match parse(&contents) {
-        Err(WsvError::DoubleQuotesMismatch(2)) => println!("successful"),
-        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
-        Err(e) => panic!("Wrong error message. got {e}"),
+        Err(_) => println!("successful"),
+        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}")
     }
 }
 

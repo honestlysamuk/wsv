@@ -88,7 +88,6 @@ pub enum WsvValue {
 }
 
 impl WsvValue {
-    #[tracing::instrument]
     pub fn new(i: &str) -> Self {
         WsvValue::Value(i.into())
     }
@@ -101,30 +100,17 @@ impl fmt::Display for WsvValue {
 
 impl From<&mut String> for WsvValue {
     fn from(string: &mut String) -> WsvValue {
-        From::from(string.as_str())
+        WsvValue::Value(string.to_owned())
     }
 }
 impl From<&str> for WsvValue {
     fn from(string: &str) -> WsvValue {
-        if string == "-" {
-            WsvValue::Null
-        } else if string.starts_with('"') && string.ends_with('"') {
-            // let val = string[1..string.len() - 1]
-            //     .split("\"")
-            //     .map(|c| match c {
-            //         "" => "\"",
-            //         "/" => "\n",
-            //         _ => c,
-            //     })
-            //     .collect::<String>();
-            WsvValue::Value(
-                string[1..string.len() - 1]
-                    .replace("\"/\"", "\n")
-                    .replace("\"\"", "\""),
-            )
-        } else {
-            WsvValue::Value(string.into())
-        }
+        WsvValue::Value(string.to_owned())
+    }
+}
+impl From<String> for WsvValue {
+    fn from(string: String) -> WsvValue {
+        WsvValue::Value(string)
     }
 }
 
@@ -134,6 +120,6 @@ pub enum WsvError {
     DoubleQuotesMismatch(usize),
     #[error("Malformed input on line {0}.")]
     MalformedInput(usize),
-    #[error("Other Error: {0}.")]
+    #[error("Parser Error: {0}.")]
     Other(String),
 }

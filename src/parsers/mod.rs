@@ -1,4 +1,6 @@
+#[cfg(feature = "nom")]
 pub mod nom;
+#[cfg(feature = "pest")]
 pub mod pest;
 pub mod primitive;
-pub mod primitive2;
+pub mod split;

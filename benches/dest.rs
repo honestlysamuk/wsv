@@ -4,7 +4,7 @@ use criterion::BenchmarkId;
 use criterion::{criterion_group, criterion_main, Criterion};
 
 pub use wsv::primitive;
-pub use wsv::primitive2;
+pub use wsv::split;
 pub use wsv::nom;
 pub use wsv::pest;
 
@@ -23,7 +23,7 @@ fn bench_static_parse(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::new("primitive", i.0), i.1, 
             |b, i| b.iter(|| primitive::parse(i).unwrap()));
         group.bench_with_input(BenchmarkId::new("primitive2", i.0), i.1, 
-            |b, i| b.iter(|| primitive2::parse(i).unwrap()));
+            |b, i| b.iter(|| split::parse(i).unwrap()));
         group.bench_with_input(BenchmarkId::new("nom", i.0), i.1, 
             |b, i| b.iter(|| nom::parse(i).unwrap()));
         group.bench_with_input(BenchmarkId::new("pest", i.0), i.1, 
