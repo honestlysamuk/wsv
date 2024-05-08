@@ -1,24 +1,28 @@
+pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+    i.split('\n')
+        .enumerate()
+        .map(parse_line)
+        .collect::<Result<Vec<Vec<WsvValue>>, Error>>()
+}
+
 // we assume that the input has no \n, and that we are BufReading each line.
-fn run<I>(mut inputs: I)
-where
-    I: Iterator<Item = char>,
-{
-    let mut state = dbg!(State::Default);
-    let mut data = Data::for_row(1);
+fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+    let mut inputs = line.chars();
+    let mut state = State::Default;
+    let mut data = Data::for_row(line_index);
     loop {
-        state = state.transition(dbg!(inputs.next()));
+        state = state.transition(inputs.next());
         data.modify_with(&state);
         if [State::Finished].contains(dbg!(&state)) {
             break;
         }
     }
-    println!("OUT");
-    println!("{:?}", data.reconcile())
+    data.reconcile()
 }
 #[derive(Debug)]
 struct Data {
-    row: u32,
-    col: u32,
+    row: usize,
+    col: usize,
     buf: String,
     out: Vec<WsvValue>,
     err: Option<Error>,
@@ -33,21 +37,21 @@ enum WsvValue {
 #[derive(Debug)]
 struct Error {
     kind: ErrorKind,
-    row: u32,
-    col: u32,
+    row: usize,
+    col: usize,
 }
 ///#[derive(Error)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum ErrorKind {
     //#[error("Odd number of double quotes detected")]
     OddDoubleQuotes,
-    //#[error("Cannot have double quotes in values")]
+    //#[error("Must have whitespace between the start of a string and the previous value")]
     NoLeadingWhitespace,
-    //#[error("Must have whitespace between values")]
+    //#[error("Must have whitespace between the end of a string and the next value")]
     NoTrailingWhitespace,
 }
 impl Data {
-    fn for_row(row: u32) -> Data {
+    fn for_row(row: usize) -> Data {
         Data {
             row,
             col: 0,
