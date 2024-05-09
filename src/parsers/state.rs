@@ -1,3 +1,5 @@
+use crate::data_model::*;
+
 pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
     i.split('\n')
         .enumerate()
@@ -5,20 +7,22 @@ pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
         .collect::<Result<Vec<Vec<WsvValue>>, Error>>()
 }
 
-// we assume that the input has no \n, and that we are BufReading each line.
-fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+// we assume that line has no `\n`.
+fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+    let row = row_index + 1;
     let mut inputs = line.chars();
     let mut state = State::Default;
-    let mut data = Data::for_row(line_index);
-    loop {
+    let finished_states = [State::Finished];
+    let mut data = Data::new(dbg!(row));
+
+    while !finished_states.contains(dbg!(&state)) {
         state = state.transition(inputs.next());
         data.modify_with(&state);
-        if [State::Finished].contains(dbg!(&state)) {
-            break;
-        }
     }
+
     data.reconcile()
 }
+
 #[derive(Debug)]
 struct Data {
     row: usize,
@@ -28,30 +32,8 @@ struct Data {
     err: Option<Error>,
 }
 
-#[derive(Debug)]
-enum WsvValue {
-    V(String),
-    Null,
-}
-
-#[derive(Debug)]
-struct Error {
-    kind: ErrorKind,
-    row: usize,
-    col: usize,
-}
-///#[derive(Error)]
-#[derive(Debug, PartialEq, Copy, Clone)]
-enum ErrorKind {
-    //#[error("Odd number of double quotes detected")]
-    OddDoubleQuotes,
-    //#[error("Must have whitespace between the start of a string and the previous value")]
-    NoLeadingWhitespace,
-    //#[error("Must have whitespace between the end of a string and the next value")]
-    NoTrailingWhitespace,
-}
 impl Data {
-    fn for_row(row: usize) -> Data {
+    fn new(row: usize) -> Data {
         Data {
             row,
             col: 0,
@@ -60,26 +42,24 @@ impl Data {
             err: None,
         }
     }
-    fn add_error(&mut self, kind: ErrorKind) {
-        self.err = Some(Error {
-            kind,
-            row: self.row,
-            col: self.col,
-        });
-    }
     fn modify_with(&mut self, state: &State) {
         self.col += 1;
         match state {
             State::Value(c) => self.buf.push(*c),
             State::StringPart(c) => self.buf.push(*c),
+            State::Error(kind) => self.err = Some(Error::new(*kind, self.row, self.col, None)),
+
+            State::MayBeNull => self.buf.push('-'),
             State::EscapedReturn => self.buf.push('\n'),
             State::EscapedDoubleQuote => self.buf.push('\"'),
-            State::MayBeNull => self.buf.push('-'),
-            State::Error(kind) => self.add_error(*kind),
             State::EndOfValue => {
                 self.out.push(WsvValue::V(self.buf.clone()));
                 self.buf.clear();
-            }
+            },
+            State::Comment => {
+                self.out.push(WsvValue::V(self.buf.clone()));
+                self.buf.clear();
+            },
             State::Null => {
                 self.out.push(WsvValue::Null);
                 self.buf.clear();
@@ -121,29 +101,29 @@ impl State {
             (State::Error(_), _) => State::Finished,
 
             (State::Default, None) => State::Finished,
+            (State::Default, Some('#')) => State::Finished,
             (State::Default, Some('-')) => State::MayBeNull,
-            (State::Default, Some('#')) => State::Comment,
             (State::Default, Some('\"')) => State::StartString,
             (State::Default, Some(c)) if c.is_whitespace() => State::Default,
             (State::Default, Some(c)) => State::Value(c),
 
             (State::EndOfValue, None) => State::Finished,
+            (State::EndOfValue, Some('#')) => State::Finished,
             (State::EndOfValue, Some('-')) => State::MayBeNull,
-            (State::EndOfValue, Some('#')) => State::Comment,
             (State::EndOfValue, Some('\"')) => State::StartString,
             (State::EndOfValue, Some(c)) if c.is_whitespace() => State::Default,
             (State::EndOfValue, Some(c)) => State::Value(c),
 
             (State::Null, None) => State::Finished,
+            (State::Null, Some('#')) => State::Finished,
             (State::Null, Some('-')) => State::MayBeNull,
-            (State::Null, Some('#')) => State::Comment,
             (State::Null, Some('\"')) => State::StartString,
             (State::Null, Some(c)) if c.is_whitespace() => State::Default,
             (State::Null, Some(c)) => State::Value(c),
 
             (State::MayBeNull, None) => State::Null,
-            (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace),
             (State::MayBeNull, Some(c)) if c.is_whitespace() => State::Null,
+            (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace),
             (State::MayBeNull, Some(c)) => State::Value(c),
 
             (State::Value(_), None) => State::EndOfValue,
@@ -165,6 +145,7 @@ impl State {
             (State::EscapedDoubleQuote, Some(c)) => State::StringPart(c),
 
             (State::EscapeOrEndOfString, None) => State::EndOfValue,
+            (State::EscapeOrEndOfString, Some('#')) => State::Comment,
             (State::EscapeOrEndOfString, Some('\"')) => State::EscapedDoubleQuote,
             (State::EscapeOrEndOfString, Some('/')) => State::MayBeEscapedReturn,
             (State::EscapeOrEndOfString, Some(c)) if c.is_whitespace() => State::EndOfValue,

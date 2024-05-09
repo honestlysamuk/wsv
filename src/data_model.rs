@@ -3,17 +3,10 @@ use std::fmt::Display;
 
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::{Attribute, Cell, Color, Table};
-use thiserror::Error;
 
 #[repr(transparent)]
 #[derive(PartialEq, Eq)]
 pub struct Wsv(pub Vec<Vec<WsvValue>>);
-
-impl Default for Wsv {
-    fn default() -> Self {
-        Self(vec![vec![]])
-    }
-}
 
 impl fmt::Debug for Wsv {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -26,10 +19,10 @@ impl Display for Wsv {
         let mut table = Table::new();
         table.apply_modifier(UTF8_ROUND_CORNERS);
 
-        for line in self.into_iter() {
+        for line in &self.0 {
             table.add_row(line.iter().map(|el| {
                 match el {
-                    WsvValue::Value(val) => {
+                    WsvValue::V(val) => {
                         if val.is_empty() {
                             Cell::new("Empty")
                                 .add_attribute(Attribute::Bold)
@@ -47,49 +40,16 @@ impl Display for Wsv {
         write!(f, "{}", table)
     }
 }
-impl IntoIterator for Wsv {
-    type Item = Vec<WsvValue>;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-impl IntoIterator for &Wsv {
-    type Item = Vec<WsvValue>;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.clone().into_iter()
-    }
-}
 
-impl From<Vec<Vec<WsvValue>>> for Wsv {
-    fn from(input: Vec<Vec<WsvValue>>) -> Self {
-        Wsv(input)
-    }
-}
-
-impl PartialEq<Wsv> for Vec<Vec<WsvValue>> {
-    fn eq(&self, other: &Wsv) -> bool {
-        other.0.eq(self)
-    }
-}
-
-impl PartialEq<Vec<Vec<WsvValue>>> for Wsv {
-    fn eq(&self, other: &Vec<Vec<WsvValue>>) -> bool {
-        self.0.eq(other)
-    }
-}
-
-#[derive(Default, Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum WsvValue {
-    Value(String),
-    #[default]
-    Null,
+    V(String),
+    Null
 }
 
 impl WsvValue {
     pub fn new(i: &str) -> Self {
-        WsvValue::Value(i.into())
+        WsvValue::V(i.into())
     }
 }
 impl fmt::Display for WsvValue {
@@ -100,26 +60,60 @@ impl fmt::Display for WsvValue {
 
 impl From<&mut String> for WsvValue {
     fn from(string: &mut String) -> WsvValue {
-        WsvValue::Value(string.to_owned())
+        WsvValue::V(string.to_owned())
     }
 }
 impl From<&str> for WsvValue {
     fn from(string: &str) -> WsvValue {
-        WsvValue::Value(string.to_owned())
+        WsvValue::V(string.to_owned())
     }
 }
 impl From<String> for WsvValue {
     fn from(string: String) -> WsvValue {
-        WsvValue::Value(string)
+        WsvValue::V(string)
     }
 }
 
-#[derive(Error, Debug, Clone, PartialEq)]
-pub enum WsvError {
-    #[error("Double Quotes mismatch on line {0}.")]
-    DoubleQuotesMismatch(usize),
-    #[error("Malformed input on line {0}.")]
-    MalformedInput(usize),
-    #[error("Parser Error: {0}.")]
-    Other(String),
+#[derive(Debug)]
+pub struct Error {
+    pub kind: ErrorKind,
+    pub row: usize,
+    pub col: usize,
+    pub source: Option<Box<dyn std::error::Error>>,
+}
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} on row {}, position {}\nCaused by {:?}", self.kind, self.row, self.col, self.source)
+    }
+}
+impl std::error::Error for Error {}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ErrorKind {
+    OddDoubleQuotes,
+    NoLeadingWhitespace,
+    NoTrailingWhitespace,
+    Pest,
+    Nom,
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            Self::OddDoubleQuotes => "Odd number of double quotes detected",
+            Self::NoLeadingWhitespace => "Must have whitespace between the start of a string and the previous value",
+            Self::NoTrailingWhitespace => "Must have whitespace between the end of a string and the next value",
+            Self::Pest => "Pest error",
+            Self::Nom => "Nom Error",
+        })
+    }
+}
+
+impl Error {
+    pub fn new(kind: ErrorKind, row: usize, col: usize, source: Option<Box<dyn std::error::Error>>) -> Error {
+        match source {
+            Some(s) => Error {kind, row, col, source: Some(s)},
+            None => Error {kind, row, col, source: None}
+        }
+    }
 }

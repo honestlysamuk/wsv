@@ -8,24 +8,11 @@ use crate::data_model::*;
 use itertools::{Itertools, Position};
 use tracing::debug;
 
-pub fn parse(i: &str) -> Result<Wsv, WsvError> {
-    if i.is_empty() {
-        Ok(Default::default())
-    } else {
-        // Can't collect directly into Result<Wsv, WsvError> so needed a minor additional match.
-        match i
-            .split('\n')
-            .enumerate()
-            .map(parse_line)
-            .collect::<Result<Vec<Vec<WsvValue>>, WsvError>>()
-        {
-            Ok(v) => Ok(v.into()),
-            Err(e) => Err(e),
-        }
-    }
+pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+    i.split('\n').enumerate().map(parse_line).collect()
 }
 
-fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvError> {
+fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let line_number = line_index + 1;
     let mut line_without_comment = String::new();
     // Since we haven't identified those hashes which are parts of strings yet, it's not clear if
@@ -39,19 +26,15 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, WsvErr
         }
         let even_number_of_quotes = line_without_comment.split('\"').count() % 2 == 1;
         if even_number_of_quotes {
-            match parse_line_without_comments((line_number, &line_without_comment)) {
-                Ok(result) => return Ok(result),
-                Err(WsvError::MalformedInput(e)) => return Err(WsvError::MalformedInput(e)),
-                Err(_) => { /* try again */ }
-            }
+            return parse_line_without_comments((line_number, &line_without_comment));
         }
     }
-    Err(WsvError::DoubleQuotesMismatch(line_number))
+    Err(dbg!(Error::new(ErrorKind::OddDoubleQuotes, line_number, 0, None)))
 }
 
 fn parse_line_without_comments(
     (line_number, line): (usize, &str),
-) -> Result<Vec<WsvValue>, WsvError> {
+) -> Result<Vec<WsvValue>, Error> {
     let mut result: Vec<WsvValue> = Vec::new();
     let mut string = String::new();
 
@@ -62,7 +45,7 @@ fn parse_line_without_comments(
                 let (these_parts, _, trailing_ws) = process_part(part);
                 if !trailing_ws && !part.is_empty() {
                     debug!(error = "No trailing whitespace", part);
-                    return Err(WsvError::MalformedInput(line_number));
+                    return Err(dbg!(Error::new(ErrorKind::NoTrailingWhitespace, line_number, 0, None)));
                 } else {
                     result.append(&mut these_parts.into());
                 }
@@ -71,7 +54,7 @@ fn parse_line_without_comments(
                 let (these_parts, leading_ws, _) = process_part(part);
                 if !leading_ws && !part.is_empty() {
                     debug!(error = "No leading whitespace", part);
-                    return Err(WsvError::MalformedInput(line_number));
+                    return Err(dbg!(Error::new(ErrorKind::NoLeadingWhitespace, line_number, 0, None)));
                 } else {
                     result.push(WsvValue::new(&mut string));
                     string.clear();
@@ -88,9 +71,12 @@ fn parse_line_without_comments(
                             result.push(WsvValue::new(&mut string));
                             string.clear();
                             let (these_parts, leading_ws, trailing_ws) = process_part(part);
-                            if !leading_ws || !trailing_ws {
-                                debug!(error = "Either no leading or no trailing whitespace", part);
-                                return Err(WsvError::MalformedInput(line_number));
+                            if !leading_ws {
+                                debug!(error = "No leading whitespace", part);
+                                return Err(dbg!(Error::new(ErrorKind::NoLeadingWhitespace, line_number, 0, None)));
+                              }  else if  !trailing_ws {
+                                debug!(error = "No trailing whitespace", part);
+                                return Err(dbg!(Error::new(ErrorKind::NoTrailingWhitespace, line_number, 0, None)));
                             } else {
                                 result.append(&mut these_parts.into());
                             }

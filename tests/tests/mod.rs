@@ -1,6 +1,5 @@
 use std::fs::read_to_string;
-use wsv::Wsv;
-use wsv::WsvError;
+use wsv::Error;
 use wsv::WsvValue;
 
 macro_rules! do_test {
@@ -20,7 +19,7 @@ pub fn v(inp: &str) -> WsvValue {
     WsvValue::from(inp)
 }
 
-pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
     match parse(&contents) {
         Err(_) => println!("Successful"),
@@ -28,7 +27,7 @@ pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     }
 }
 
-pub fn no_leading_whitespace_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn no_leading_whitespace_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let contents = read_to_string("./tests/example_files/no_leading_whitespace.wsv").unwrap();
     match parse(&contents) {
         Err(_) => println!("Successful"),
@@ -36,7 +35,7 @@ pub fn no_leading_whitespace_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>)
     }
 }
 
-pub fn no_trailing_whitespace_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn no_trailing_whitespace_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let contents = read_to_string("./tests/example_files/no_trailing_whitespace.wsv").unwrap();
     match parse(&contents) {
         Err(_) => println!("Successful"),
@@ -44,7 +43,7 @@ pub fn no_trailing_whitespace_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>
     }
 }
 
-pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let contents = read_to_string("./tests/example_files/odd_quotes.wsv").unwrap();
     match parse(&contents) {
         Err(_) => println!("successful"),
@@ -52,7 +51,7 @@ pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     }
 }
 
-pub fn comments_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn comments_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/comments.wsv").unwrap();
     let output = vec![
         vec![],
@@ -62,31 +61,31 @@ pub fn comments_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     do_test!(parse, input, output);
 }
 
-pub fn not_null_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn not_null_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/not_null.wsv").unwrap();
     let output = vec![vec![v("-")]];
     do_test!(parse, input, output);
 }
 
-pub fn single_slash_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn single_slash_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/single_slash.wsv").unwrap();
     let output = vec![vec![v("/")]];
     do_test!(parse, input, output);
 }
 
-pub fn empty_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn empty_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/empty.wsv").unwrap();
     let output = vec![vec![]];
     do_test!(parse, input, output);
 }
 
-pub fn trailing_return_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn trailing_return_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/trailing_return.wsv").unwrap();
     let output = vec![vec![v("5")], vec![]];
     do_test!(parse, input, output);
 }
 
-pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/empty_string.wsv").unwrap();
     let output = vec![
         vec![v("")],
@@ -102,7 +101,7 @@ pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     do_test!(parse, input, output);
 }
 
-pub fn null_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn null_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/nulls.wsv").unwrap();
     let output = vec![
         vec![v("nullExample"), WsvValue::Null, v("2")],
@@ -113,13 +112,13 @@ pub fn null_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     do_test!(parse, input, output);
 }
 
-pub fn numbers_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn numbers_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/numbers.wsv").unwrap();
     let output = vec![vec![v("1"), v("2.0"), v("3.4.5"), v("6.789")]];
     do_test!(parse, input, output);
 }
 
-pub fn strings_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn strings_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/strings.wsv").unwrap();
     let output = vec![
         vec![v("hello")],
@@ -131,7 +130,7 @@ pub fn strings_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
     do_test!(parse, input, output);
 }
 
-pub fn parse_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
+pub fn parse_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     let input = read_to_string("./tests/example_files/parse_example.wsv").unwrap();
     let output = vec![
         vec![],
@@ -147,7 +146,7 @@ pub fn parse_test(parse: &dyn Fn(&str) -> Result<Wsv, WsvError>) {
         vec![v("string"), WsvValue::Null, v("null")],
         vec![],
         vec![],
-        vec![v("val")],
+        vec![v("")],
         vec![v("val")],
         vec![],
     ];

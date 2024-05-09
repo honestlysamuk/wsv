@@ -46,7 +46,7 @@ fn value(i: &str) -> IResult<&str, WsvValue> {
             take_till(|c: char| c == '\"' || c == '#' || c.is_whitespace()),
             |s: &str| !s.is_empty(),
         ),
-        |s| WsvValue::Value(String::from(s)),
+        |s| WsvValue::V(String::from(s)),
     )(i)
 }
 
@@ -58,7 +58,7 @@ fn string(i: &str) -> IResult<&str, WsvValue> {
             many0(alt((string_part, double_quote, new_line))),
             char('\"'),
         ),
-        |s| WsvValue::Value(s.iter().fold(String::new(), |acc, s| acc + s)),
+        |s| WsvValue::V(s.iter().fold(String::new(), |acc, s| acc + s)),
     )(i)
 }
 
@@ -82,18 +82,19 @@ fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
     separated_list0(char('\n'), line)(i)
 }
 
-pub fn parse(i: &str) -> Result<Wsv, WsvError> {
+pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
     match all_consuming(wsv)(i) {
-        Ok((_, o)) => Ok(Wsv::from(o)),
-        Err(e) => Err(WsvError::from(e)),
+        Ok((_, o)) => Ok(o),
+        Err(e) => Err(Error::from(e)),
     }
 }
 
-impl From<nomErr<nomError<&str>>> for WsvError {
+impl From<nomErr<nomError<&str>>> for Error {
     fn from(value: nomErr<nomError<&str>>) -> Self {
-        WsvError::Other(value.to_string())
+        Error::new(ErrorKind::Nom, 0, 0, Some(value.to_string().into()))
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -136,7 +137,7 @@ mod tests {
 
     #[test]
     fn value_parses() {
-        assert_eq!(value(VALUE), Ok(("", WsvValue::Value("1".to_owned()))));
+        assert_eq!(value(VALUE), Ok(("", WsvValue::V("1".to_owned()))));
     }
 
     const NULL: &str = r#"-"#;
@@ -159,7 +160,7 @@ mod tests {
     fn string_parses() {
         assert_eq!(
             string(STRING),
-            Ok(("", WsvValue::Value("hello,world!".to_owned())))
+            Ok(("", WsvValue::V("hello,world!".to_owned())))
         );
     }
 
@@ -169,7 +170,7 @@ mod tests {
     fn string_with_spaces_parses() {
         assert_eq!(
             string(STRING_WITH_SPACES),
-            Ok(("", WsvValue::Value("hello, world!".to_owned())))
+            Ok(("", WsvValue::V("hello, world!".to_owned())))
         );
     }
 
@@ -179,7 +180,7 @@ mod tests {
     fn string_with_quotes() {
         assert_eq!(
             string(STRING_WITH_QUOTES),
-            Ok(("", WsvValue::Value("hello,\"world!".to_owned())))
+            Ok(("", WsvValue::V("hello,\"world!".to_owned())))
         );
     }
 
@@ -189,7 +190,7 @@ mod tests {
     fn string_with_newline() {
         assert_eq!(
             string(STRING_WITH_NEWLINE),
-            Ok(("", WsvValue::Value("hello,\nworld!".to_owned())))
+            Ok(("", WsvValue::V("hello,\nworld!".to_owned())))
         );
     }
 
@@ -199,7 +200,7 @@ mod tests {
     fn string_with_hash() {
         assert_eq!(
             string(STRING_WITH_HASH),
-            Ok(("", WsvValue::Value("hello,#world!".to_owned())))
+            Ok(("", WsvValue::V("hello,#world!".to_owned())))
         );
     }
 
@@ -209,7 +210,7 @@ mod tests {
     fn empty_string() {
         assert_eq!(
             string(EMPTY_STRING),
-            Ok(("", WsvValue::Value("".to_owned())))
+            Ok(("", WsvValue::V("".to_owned())))
         );
     }
 
@@ -222,8 +223,8 @@ mod tests {
             Ok((
                 "",
                 vec![
-                    WsvValue::Value("1".to_owned()),
-                    WsvValue::Value("2".to_owned()),
+                    WsvValue::V("1".to_owned()),
+                    WsvValue::V("2".to_owned()),
                 ]
             ))
         );
@@ -243,12 +244,12 @@ mod tests {
             Ok((
                 "",
                 vec![
-                    WsvValue::Value("1".to_owned()),
-                    WsvValue::Value("hello".to_owned()),
-                    WsvValue::Value("world".to_owned()),
-                    WsvValue::Value("\n".to_owned()),
-                    WsvValue::Value("\"".to_owned()),
-                    WsvValue::Value("".to_owned()),
+                    WsvValue::V("1".to_owned()),
+                    WsvValue::V("hello".to_owned()),
+                    WsvValue::V("world".to_owned()),
+                    WsvValue::V("\n".to_owned()),
+                    WsvValue::V("\"".to_owned()),
+                    WsvValue::V("".to_owned()),
                     WsvValue::Null,
                 ]
             ))
@@ -270,22 +271,22 @@ val# comment
                 "",
                 vec![
                     vec![
-                        WsvValue::Value("1".to_owned()),
-                        WsvValue::Value("hello".to_owned()),
-                        WsvValue::Value("world".to_owned()),
-                        WsvValue::Value("\n".to_owned()),
-                        WsvValue::Value("\"".to_owned()),
-                        WsvValue::Value("".to_owned()),
+                        WsvValue::V("1".to_owned()),
+                        WsvValue::V("hello".to_owned()),
+                        WsvValue::V("world".to_owned()),
+                        WsvValue::V("\n".to_owned()),
+                        WsvValue::V("\"".to_owned()),
+                        WsvValue::V("".to_owned()),
                         WsvValue::Null,
                     ],
                     vec![
-                        WsvValue::Value("string".to_owned()),
+                        WsvValue::V("string".to_owned()),
                         WsvValue::Null,
-                        WsvValue::Value("null".to_owned()),
+                        WsvValue::V("null".to_owned()),
                     ],
                     vec![],
-                    vec![WsvValue::Value("val".to_owned())],
-                    vec![WsvValue::Value("val".to_owned())],
+                    vec![WsvValue::V("val".to_owned())],
+                    vec![WsvValue::V("val".to_owned())],
                     vec![],
                 ]
             ))
@@ -310,24 +311,24 @@ val# comment
                 vec![
                     vec![],
                     vec![
-                        WsvValue::Value("1".to_owned()),
-                        WsvValue::Value("hello".to_owned()),
-                        WsvValue::Value("world".to_owned()),
-                        WsvValue::Value("\n".to_owned()),
-                        WsvValue::Value("\"".to_owned()),
-                        WsvValue::Value("".to_owned()),
+                        WsvValue::V("1".to_owned()),
+                        WsvValue::V("hello".to_owned()),
+                        WsvValue::V("world".to_owned()),
+                        WsvValue::V("\n".to_owned()),
+                        WsvValue::V("\"".to_owned()),
+                        WsvValue::V("".to_owned()),
                         WsvValue::Null,
                     ],
                     vec![],
                     vec![
-                        WsvValue::Value("string".to_owned()),
+                        WsvValue::V("string".to_owned()),
                         WsvValue::Null,
-                        WsvValue::Value("null".to_owned()),
-                        WsvValue::Value("#".to_owned()),
+                        WsvValue::V("null".to_owned()),
+                        WsvValue::V("#".to_owned()),
                     ],
                     vec![],
-                    vec![WsvValue::Value("val".to_owned())],
-                    vec![WsvValue::Value("val".to_owned())],
+                    vec![WsvValue::V("val".to_owned())],
+                    vec![WsvValue::V("val".to_owned())],
                     vec![],
                 ]
             ))

@@ -4,7 +4,7 @@ use std::fs::read_to_string;
 use tracing::subscriber::set_global_default as sgd;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber as sub;
-use wsv::{Wsv, WsvValue};
+use wsv::{parse, Wsv, WsvValue};
 // rust-analyzer.inlayHints.typeHints.enable
 
 fn main() {
@@ -25,12 +25,12 @@ fn run(input: String) -> Result<(), Box<dyn Error>> {
     let contents =
         read_to_string::<String>(["./tests/example_files/", &input, ".wsv"].concat())?;
 
-    let wsv = Wsv::try_from(contents.as_str())?;
+    let wsv = parse(&contents)?;
 
-    let sum = wsv.0
+    let sum = wsv
         .iter()
         .map(|row| {
-            if let Some(WsvValue::Value(string)) = row.first() {
+            if let Some(WsvValue::V(string)) = row.first() {
                 string.len()
             } else {
                 0
@@ -40,7 +40,7 @@ fn run(input: String) -> Result<(), Box<dyn Error>> {
 
     println!("done: {}", sum);
     println!();
-    println!("{wsv}");
+    println!("{}", Wsv(wsv));
     Ok(())
 }
 
