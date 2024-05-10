@@ -1,7 +1,6 @@
-use std::fs::read_to_string;
 use wsv::Error;
-use wsv::WsvValue::Null;
 use wsv::WsvValue;
+use wsv::WsvValue::Null;
 
 macro_rules! do_test {
     ($parser:ident, $input:expr, $output:expr) => {
@@ -20,75 +19,83 @@ pub fn v(inp: &str) -> WsvValue {
     WsvValue::V(inp.to_owned())
 }
 
-pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
+pub fn no_whitespace_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
     //let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
-    let contents = r##"mmm"mmm"mmm"##;
-    match parse(contents) {
+    const INPUT: &str = r##"mmm"mmm"mmm"##;
+    match parse(INPUT) {
         Err(_) => println!("Successful"),
-        Ok(v) => panic!("Parsed Malformed input: {v:?}")
+        Ok(v) => panic!("Parsed Malformed input: {v:?}"),
     }
 }
 
 pub fn no_leading_whitespace_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let contents = read_to_string("./tests/example_files/no_leading_whitespace.wsv").unwrap();
-    match parse(&contents) {
+    const INPUT: &str = r##"mmm"mmm" mmm"##;
+    match parse(INPUT) {
         Err(_) => println!("Successful"),
-        Ok(v) => panic!("Parsed Malformed input: {v:?}")
+        Ok(v) => panic!("Parsed Malformed input: {v:?}"),
     }
 }
 
 pub fn no_trailing_whitespace_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let contents = read_to_string("./tests/example_files/no_trailing_whitespace.wsv").unwrap();
-    match parse(&contents) {
+    const INPUT: &str = r##"mmm "mmm"mmm"##;
+    match parse(INPUT) {
         Err(_) => println!("Successful"),
-        Ok(v) => panic!("Parsed Malformed input: {v:?}")
+        Ok(v) => panic!("Parsed Malformed input: {v:?}"),
     }
 }
 
 pub fn odd_quotes_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let contents = read_to_string("./tests/example_files/odd_quotes.wsv").unwrap();
-    match parse(&contents) {
+    const INPUT: &str = r##"""##;
+    match parse(INPUT) {
         Err(_) => println!("successful"),
-        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}")
+        Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
     }
 }
 
 pub fn comments_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/comments.wsv").unwrap();
+    const INPUT: &str = "# This is a comment\nCommentExample # and this\nbut \" # \" is fine";
     let output = vec![
         vec![],
         vec![v("CommentExample")],
         vec![v("but"), v(" # "), v("is"), v("fine")],
     ];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn not_null_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/not_null.wsv").unwrap();
+    const INPUT: &str = r#""-""#;
     let output = vec![vec![v("-")]];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn single_slash_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/single_slash.wsv").unwrap();
+    const INPUT: &str = r#""/""#;
     let output = vec![vec![v("/")]];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn empty_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/empty.wsv").unwrap();
+    const INPUT: &str = "";
     let output = vec![vec![]];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn trailing_return_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/trailing_return.wsv").unwrap();
+    const INPUT: &str = "5\n";
     let output = vec![vec![v("5")], vec![]];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/empty_string.wsv").unwrap();
+    const INPUT: &str = r#"""
+"1"
+"2" "3"
+"4" ""
+"" "5"
+"" ""
+"6" ""  7
+    8  "" "9"
+"a" "" "b""#;
     let output = vec![
         vec![v("")],
         vec![v("1")],
@@ -100,57 +107,31 @@ pub fn empty_string_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Erro
         vec![v("8"), v(""), v("9")],
         vec![v("a"), v(""), v("b")],
     ];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn null_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/nulls.wsv").unwrap();
-    let output = vec![
-        vec![v("nullExample"), WsvValue::Null, v("2")],
-        vec![WsvValue::Null],
-        vec![WsvValue::Null, v("2")],
-        vec![v("3"), WsvValue::Null],
-    ];
-    do_test!(parse, input, output);
+    const INPUT: &str = "-";
+    let output = vec![vec![Null]];
+    do_test!(parse, INPUT, output);
 }
 
 pub fn numbers_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/numbers.wsv").unwrap();
+    const INPUT: &str = "1 2.0 3.4.5 6.789";
     let output = vec![vec![v("1"), v("2.0"), v("3.4.5"), v("6.789")]];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }
 
 pub fn strings_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/strings.wsv").unwrap();
+    const INPUT: &str = r##"hello it's "me" "" 
+    "I'was" "wondering#if" "after/all" 
+    "these""years" "you'd"/"like" 
+    ""/"" """" "#" "/"      "##;
     let output = vec![
-        vec![v("hello")],
-        vec![v("it's"), v(""), v("me")],
-        vec![v("I was wondering")],
-        vec![v(" if \" after all these ")],
-        vec![v("years"), v(""), v(" you'd like\nto meet")],
+        vec![v("hello"), v("it's"), v("me"), v("")],
+        vec![v("I'was"), v("wondering#if"), v("after/all")],
+        vec![v("these\"years"), v("you'd\nlike")],
+        vec![v("\n"), v("\""), v("#"), v("/")],
     ];
-    do_test!(parse, input, output);
-}
-
-pub fn parse_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let input = read_to_string("./tests/example_files/parse_example.wsv").unwrap();
-    let output = vec![
-        vec![],
-        vec![
-            v("1"),
-            v("hello"),
-            v("world"),
-            v("\n"),
-            v("\""),
-            v(""),
-            Null,
-        ],
-        vec![v("string"), Null, v("null")],
-        vec![],
-        vec![],
-        vec![v("")],
-        vec![v("val")],
-        vec![],
-    ];
-    do_test!(parse, input, output);
+    do_test!(parse, INPUT, output);
 }

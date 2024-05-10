@@ -13,7 +13,7 @@ pub use wsv::state;
 fn bench_static_parse(c: &mut Criterion) {
     let mut group = c.benchmark_group("StaticParse");
 
-    let test_files = ["big", "nulls"];
+    let test_files = ["empty_string", "big"];
 
     let input_list = test_files.iter().map(|name| {
         (name, read_to_string::<String>("./tests/example_files/".to_string() + name + ".wsv").unwrap())

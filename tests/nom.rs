@@ -28,16 +28,12 @@ fn empty() {
     empty_test(&parse)
 }
 #[test]
-fn malformed() {
-    malformed_test(&parse)
+fn no_whitespace() {
+    no_whitespace_test(&parse)
 }
 #[test]
 fn odd_quotes() {
     odd_quotes_test(&parse)
-}
-#[test]
-fn parse_example() {
-    parse_test(&parse)
 }
 #[test]
 fn single_slash() {

@@ -58,6 +58,8 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error>
 fn parse_value(buf: &mut str, row: usize, col: usize) -> Result<WsvValue, Error> {
     if buf == "-" {
         Ok(WsvValue::Null)
+    } else if buf == "\"" {
+        Err(dbg!(Error::new(ErrorKind::OddDoubleQuotes, row, col, None)))
     } else if buf.starts_with('"') && buf.ends_with('"') {
         Ok(WsvValue::V(
             buf[1..buf.len() - 1]
