@@ -9,7 +9,15 @@ use wsv::{parse, Wsv, WsvValue};
 
 fn main() {
     sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
-    let input = env::args().nth(1).unwrap_or(String::from("strings"));
+    let input = env::args().nth(1).unwrap_or(String::from("odd_quotes"));
+    if let Err(err) = run(input) {
+        println!("{:?}", err);
+    }
+    let input = env::args().nth(1).unwrap_or(String::from("no_leading_whitespace"));
+    if let Err(err) = run(input) {
+        println!("{:?}", err);
+    }
+    let input = env::args().nth(1).unwrap_or(String::from("no_trailing_whitespace"));
     if let Err(err) = run(input) {
         println!("{:?}", err);
     }

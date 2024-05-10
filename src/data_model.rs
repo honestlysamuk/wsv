@@ -93,7 +93,7 @@ pub enum ErrorKind {
     OddDoubleQuotes,
     NoLeadingWhitespace,
     NoTrailingWhitespace,
-    Pest,
+    MissingWhitespace,
     Nom,
 }
 
@@ -101,9 +101,9 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", match self {
             Self::OddDoubleQuotes => "Odd number of double quotes detected",
-            Self::NoLeadingWhitespace => "Must have whitespace between the start of a string and the previous value",
-            Self::NoTrailingWhitespace => "Must have whitespace between the end of a string and the next value",
-            Self::Pest => "Pest error",
+            Self::NoLeadingWhitespace => "Missing whitespace on the left side of this double quote",
+            Self::NoTrailingWhitespace => "Missing whitespace on the right side of this double quote",
+            Self::MissingWhitespace => "Missing whitespace on one side of this double quote",
             Self::Nom => "Nom Error",
         })
     }
@@ -111,9 +111,6 @@ impl Display for ErrorKind {
 
 impl Error {
     pub fn new(kind: ErrorKind, row: usize, col: usize, source: Option<Box<dyn std::error::Error>>) -> Error {
-        match source {
-            Some(s) => Error {kind, row, col, source: Some(s)},
-            None => Error {kind, row, col, source: None}
-        }
+        Error {kind, row, col, source}
     }
 }

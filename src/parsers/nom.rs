@@ -3,13 +3,37 @@ pub(crate) use nom::{
     bytes::complete::{tag, take_till, take_while},
     character::complete::char,
     combinator::{all_consuming, map, value as ifthen, verify},
-    error::Error as nomError,
     multi::{many0, separated_list0},
     sequence::delimited,
-    Err as nomErr, IResult,
+    IResult,
 };
 
 use crate::data_model::*;
+
+pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+    i.split('\n').enumerate().map(parse_line).collect()
+}
+
+// we assume that line has no `\n`.
+fn parse_line((row_index, input): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+    let row = row_index + 1;
+    match all_consuming(line)(input) {
+        Ok((_, o)) => Ok(o),
+        Err(e) => Err(Error::new(ErrorKind::Nom, row, 0, Some(e.to_string().into()))),
+    }
+}
+
+#[tracing::instrument]
+fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
+    let (i, _) = ws0(i)?;
+    let (i, o) = separated_list0(ws1, alt((null, string, value)))(i)?;
+    let (i, _) = ws0(i)?;
+    let (i, _) = match comment(i) {
+        Ok((i, o)) => (i, o),
+        Err(_) => (i, ""),
+    };
+    Ok((i, o))
+}
 
 fn ws0(i: &str) -> IResult<&str, &str> {
     take_while(|c: char| c.is_whitespace() && c != '\n')(i)
@@ -22,32 +46,8 @@ fn ws1(i: &str) -> IResult<&str, &str> {
     )(i)
 }
 
-fn new_line(i: &str) -> IResult<&str, &str> {
-    ifthen("\n", tag("\"/\""))(i)
-}
-
-fn double_quote(i: &str) -> IResult<&str, &str> {
-    ifthen("\"", tag("\"\""))(i)
-}
-
-fn string_part(i: &str) -> IResult<&str, &str> {
-    verify(take_till(|c| c == '\n' || c == '\"'), |p: &str| {
-        !p.is_empty()
-    })(i)
-}
-
 fn null(i: &str) -> IResult<&str, WsvValue> {
     ifthen(WsvValue::Null, tag("-"))(i)
-}
-
-fn value(i: &str) -> IResult<&str, WsvValue> {
-    map(
-        verify(
-            take_till(|c: char| c == '\"' || c == '#' || c.is_whitespace()),
-            |s: &str| !s.is_empty(),
-        ),
-        |s| WsvValue::V(String::from(s)),
-    )(i)
 }
 
 #[tracing::instrument]
@@ -62,37 +62,33 @@ fn string(i: &str) -> IResult<&str, WsvValue> {
     )(i)
 }
 
+fn string_part(i: &str) -> IResult<&str, &str> {
+    verify(take_till(|c| c == '\n' || c == '\"'), |p: &str| {
+        !p.is_empty()
+    })(i)
+}
+
+fn double_quote(i: &str) -> IResult<&str, &str> {
+    ifthen("\"", tag("\"\""))(i)
+}
+
+fn new_line(i: &str) -> IResult<&str, &str> {
+    ifthen("\n", tag("\"/\""))(i)
+}
+
+fn value(i: &str) -> IResult<&str, WsvValue> {
+    map(
+        verify(
+            take_till(|c: char| c == '\"' || c == '#' || c.is_whitespace()),
+            |s: &str| !s.is_empty(),
+        ),
+        |s| WsvValue::V(String::from(s)),
+    )(i)
+}
+
 fn comment(i: &str) -> IResult<&str, &str> {
     let (i, _) = tag("#")(i)?;
     take_till(|c| c == '\n')(i)
-}
-#[tracing::instrument]
-fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
-    let (i, _) = ws0(i)?;
-    let (i, o) = separated_list0(ws1, alt((null, string, value)))(i)?;
-    let (i, _) = ws0(i)?;
-    let (i, _) = match comment(i) {
-        Ok((i, o)) => (i, o),
-        Err(_) => (i, ""),
-    };
-    Ok((i, o))
-}
-
-fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
-    separated_list0(char('\n'), line)(i)
-}
-
-pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
-    match all_consuming(wsv)(i) {
-        Ok((_, o)) => Ok(o),
-        Err(e) => Err(Error::from(e)),
-    }
-}
-
-impl From<nomErr<nomError<&str>>> for Error {
-    fn from(value: nomErr<nomError<&str>>) -> Self {
-        Error::new(ErrorKind::Nom, 0, 0, Some(value.to_string().into()))
-    }
 }
 
 
@@ -251,85 +247,6 @@ mod tests {
                     WsvValue::V("\"".to_owned()),
                     WsvValue::V("".to_owned()),
                     WsvValue::Null,
-                ]
-            ))
-        );
-    }
-
-    const WSV1: &str = r##"    1 hello "world" ""/"" """" "" -
-"string" - null # other comment #comment
-# comment
-val#commentt
-val# comment
-"##;
-
-    #[test]
-    fn wsv1_test() {
-        assert_eq!(
-            wsv(WSV1),
-            Ok((
-                "",
-                vec![
-                    vec![
-                        WsvValue::V("1".to_owned()),
-                        WsvValue::V("hello".to_owned()),
-                        WsvValue::V("world".to_owned()),
-                        WsvValue::V("\n".to_owned()),
-                        WsvValue::V("\"".to_owned()),
-                        WsvValue::V("".to_owned()),
-                        WsvValue::Null,
-                    ],
-                    vec![
-                        WsvValue::V("string".to_owned()),
-                        WsvValue::Null,
-                        WsvValue::V("null".to_owned()),
-                    ],
-                    vec![],
-                    vec![WsvValue::V("val".to_owned())],
-                    vec![WsvValue::V("val".to_owned())],
-                    vec![],
-                ]
-            ))
-        );
-    }
-
-    const WSV2: &str = r##"
-1 hello "world" ""/"" """" "" -   
-#
-"string" - null "#" # other comment #comment#
-# comment
-val#commentt
-val# comment
-"##;
-
-    #[test]
-    fn wsv2_test() {
-        assert_eq!(
-            wsv(WSV2),
-            Ok((
-                "",
-                vec![
-                    vec![],
-                    vec![
-                        WsvValue::V("1".to_owned()),
-                        WsvValue::V("hello".to_owned()),
-                        WsvValue::V("world".to_owned()),
-                        WsvValue::V("\n".to_owned()),
-                        WsvValue::V("\"".to_owned()),
-                        WsvValue::V("".to_owned()),
-                        WsvValue::Null,
-                    ],
-                    vec![],
-                    vec![
-                        WsvValue::V("string".to_owned()),
-                        WsvValue::Null,
-                        WsvValue::V("null".to_owned()),
-                        WsvValue::V("#".to_owned()),
-                    ],
-                    vec![],
-                    vec![WsvValue::V("val".to_owned())],
-                    vec![WsvValue::V("val".to_owned())],
-                    vec![],
                 ]
             ))
         );

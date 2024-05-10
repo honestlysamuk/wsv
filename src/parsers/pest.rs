@@ -5,6 +5,7 @@
 use pest::error::Error as pestError;
 use pest::Parser;
 use pest_derive::Parser;
+use pest::error::ErrorVariant;
 use pest::error::LineColLocation::{Pos, Span};
 use crate::data_model::*;
 
@@ -51,6 +52,15 @@ impl From<pestError<Rule>> for Error {
                 Pos((a, b)) => (a, b),
                 Span((a, b), (_, _)) => (a, b),
             };
-        Error::new(ErrorKind::Pest, row, col, Some(Box::new(value)))
+        let kind = match value.variant {
+                ErrorVariant::ParsingError{positives, ..} => {
+                    match positives.len() {
+                        3 => ErrorKind::OddDoubleQuotes,
+                        _ => ErrorKind::MissingWhitespace,
+                    }
+                },
+                _ => ErrorKind::MissingWhitespace,
+        };
+        Error::new(kind, row, col, None)
     }
 }

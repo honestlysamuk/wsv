@@ -1,10 +1,7 @@
 use crate::data_model::*;
 
 pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
-    i.split('\n')
-        .enumerate()
-        .map(parse_line)
-        .collect::<Result<Vec<Vec<WsvValue>>, Error>>()
+    i.split('\n').enumerate().map(parse_line).collect()
 }
 
 // we assume that line has no `\n`.
@@ -55,11 +52,11 @@ impl Data {
             State::EndOfValue => {
                 self.out.push(WsvValue::V(self.buf.clone()));
                 self.buf.clear();
-            },
+            }
             State::Comment => {
                 self.out.push(WsvValue::V(self.buf.clone()));
                 self.buf.clear();
-            },
+            }
             State::Null => {
                 self.out.push(WsvValue::Null);
                 self.buf.clear();
