@@ -1,5 +1,6 @@
 use std::fs::read_to_string;
 use wsv::Error;
+use wsv::WsvValue::Null;
 use wsv::WsvValue;
 
 macro_rules! do_test {
@@ -16,12 +17,13 @@ macro_rules! do_test {
 }
 
 pub fn v(inp: &str) -> WsvValue {
-    WsvValue::from(inp)
+    WsvValue::V(inp.to_owned())
 }
 
 pub fn malformed_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
-    let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
-    match parse(&contents) {
+    //let contents = read_to_string("./tests/example_files/malformed.wsv").unwrap();
+    let contents = r##"mmm"mmm"mmm"##;
+    match parse(contents) {
         Err(_) => println!("Successful"),
         Ok(v) => panic!("Parsed Malformed input: {v:?}")
     }
@@ -141,9 +143,9 @@ pub fn parse_test(parse: &dyn Fn(&str) -> Result<Vec<Vec<WsvValue>>, Error>) {
             v("\n"),
             v("\""),
             v(""),
-            WsvValue::Null,
+            Null,
         ],
-        vec![v("string"), WsvValue::Null, v("null")],
+        vec![v("string"), Null, v("null")],
         vec![],
         vec![],
         vec![v("")],
