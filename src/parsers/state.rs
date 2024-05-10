@@ -13,9 +13,9 @@ fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> 
     let mut inputs = line.chars();
     let mut state = State::Default;
     let finished_states = [State::Finished];
-    let mut data = Data::new(dbg!(row));
+    let mut data = Data::new(row);
 
-    while !finished_states.contains(dbg!(&state)) {
+    while !finished_states.contains(&state) {
         state = state.transition(inputs.next());
         data.modify_with(&state);
     }
@@ -69,7 +69,7 @@ impl Data {
     }
     fn reconcile(self) -> Result<Vec<WsvValue>, Error> {
         match self.err {
-            Some(e) => Err(e),
+            Some(e) => Err(dbg!(e)),
             None => Ok(self.out),
         }
     }

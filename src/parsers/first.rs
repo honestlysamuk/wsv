@@ -48,7 +48,7 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error>
         values.push(parse_value(&mut buf, row, col)?);
     }
 
-    if dbg!(open_quotes) {
+    if open_quotes {
         Err(dbg!(Error::new(ErrorKind::OddDoubleQuotes, row, col, None)))
     } else {
         Ok(values)

@@ -1,6 +1,6 @@
 mod tests;
 use crate::tests::*;
-use wsv::primitive::parse;
+use wsv::first::parse;
 
 #[test]
 fn null() {
