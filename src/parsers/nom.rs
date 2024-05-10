@@ -26,7 +26,7 @@ fn parse_line((row_index, input): (usize, &str)) -> Result<Vec<WsvValue>, Error>
 #[tracing::instrument]
 fn line(i: &str) -> IResult<&str, Vec<WsvValue>> {
     let (i, _) = ws0(i)?;
-    let (i, o) = separated_list0(ws1, alt((null, string, value)))(i)?;
+    let (i, o) = separated_list0(ws1, alt((nul, string, value)))(i)?;
     let (i, _) = ws0(i)?;
     let (i, _) = match comment(i) {
         Ok((i, o)) => (i, o),
@@ -46,7 +46,7 @@ fn ws1(i: &str) -> IResult<&str, &str> {
     )(i)
 }
 
-fn null(i: &str) -> IResult<&str, WsvValue> {
+fn nul(i: &str) -> IResult<&str, WsvValue> {
     ifthen(WsvValue::Null, tag("-"))(i)
 }
 
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn null_parses() {
-        assert_eq!(null(NULL), Ok(("", WsvValue::Null)));
+        assert_eq!(nul(NULL), Ok(("", WsvValue::Null)));
     }
 
     const COMMENT: &str = "# This is a comment";
@@ -203,7 +203,7 @@ mod tests {
     const EMPTY_STRING: &str = r#""""#;
 
     #[test]
-    fn empty_string() {
+    fn empty_str() {
         assert_eq!(
             string(EMPTY_STRING),
             Ok(("", WsvValue::V("".to_owned())))
@@ -250,5 +250,64 @@ mod tests {
                 ]
             ))
         );
+    }
+}
+
+#[cfg(test)]
+mod unit_tests {
+    use super::parse;
+    use crate::unit_tests::*;
+
+    #[test]
+    fn null() {
+        null_test(&parse)
+    }
+    #[test]
+    fn numbers() {
+        numbers_test(&parse)
+    }
+    #[test]
+    fn strings() {
+        strings_test(&parse)
+    }
+    #[test]
+    fn comments() {
+        comments_test(&parse)
+    }
+    #[test]
+    fn not_null() {
+        not_null_test(&parse)
+    }
+    #[test]
+    fn empty() {
+        empty_test(&parse)
+    }
+    #[test]
+    fn no_whitespace() {
+        no_whitespace_test(&parse)
+    }
+    #[test]
+    fn odd_quotes() {
+        odd_quotes_test(&parse)
+    }
+    #[test]
+    fn single_slash() {
+        single_slash_test(&parse)
+    }
+    #[test]
+    fn empty_string() {
+        empty_string_test(&parse)
+    }
+    #[test]
+    fn trailing_return() {
+        trailing_return_test(&parse)
+    }
+    #[test]
+    fn no_leading_whitespace() {
+        no_leading_whitespace_test(&parse)
+    }
+    #[test]
+    fn no_trailing_whitespace() {
+        no_trailing_whitespace_test(&parse)
     }
 }

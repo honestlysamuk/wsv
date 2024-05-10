@@ -1,6 +1,7 @@
-use wsv::Error;
-use wsv::WsvValue;
-use wsv::WsvValue::Null;
+pub use crate::data_model::Error;
+pub use crate::data_model::WsvValue;
+pub use crate::data_model::WsvValue::Null;
+
 
 macro_rules! do_test {
     ($parser:ident, $input:expr, $output:expr) => {

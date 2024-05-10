@@ -5,6 +5,10 @@ pub use crate::data_model::WsvValue;
 
 mod parsers;
 
+#[cfg(test)]
+mod unit_tests;
+
+
 #[cfg(feature = "nom")]
 pub use crate::parsers::nom;
 #[cfg(feature = "pest")]
