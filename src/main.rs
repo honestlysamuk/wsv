@@ -9,7 +9,7 @@ use wsv::{parse, Wsv, WsvValue};
 
 fn main() {
     sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
-    let input = env::args().nth(1).unwrap();
+    let input = env::args().nth(1).unwrap_or(String::from("strings"));
     if let Err(err) = run(input) {
         println!("{:?}", err);
     }
