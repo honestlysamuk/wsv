@@ -1,6 +1,8 @@
+# Sunday 12th May
+
 Results from the comparison.
 
-The separation of concerns overhead is around 1 microsecond, or 40% slower. The additional indirection costs, and this is how much. Still, both mealy and moore are faster than every other implementation so far.
+The separation of concerns overhead is around 1 microsecond, or 40% slower. The additional indirection costs, and this is how much. Still, both mealy and moore are faster than every other implementation so far, and they are far more universally applicable. Still need to enter serde into the mix.
 
 ```rs
 Benchmarking StaticParse/first/empty_string: Collecting 100 samples in estimated 5.
