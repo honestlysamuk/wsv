@@ -19,7 +19,12 @@ fn parse_line((row_index, input): (usize, &str)) -> Result<Vec<WsvValue>, Error>
     let row = row_index + 1;
     match all_consuming(line)(input) {
         Ok((_, o)) => Ok(o),
-        Err(e) => Err(Error::new(ErrorKind::Nom, row, 0, Some(e.to_string().into()))),
+        Err(e) => Err(Error::new(
+            ErrorKind::Nom,
+            row,
+            0,
+            Some(e.to_string().into()),
+        )),
     }
 }
 
@@ -91,9 +96,8 @@ fn comment(i: &str) -> IResult<&str, &str> {
     take_till(|c| c == '\n')(i)
 }
 
-
 #[cfg(test)]
-mod tests {
+mod nom_tests {
     use super::*;
 
     fn ws(i: &str) -> IResult<&str, &str> {
@@ -204,10 +208,7 @@ mod tests {
 
     #[test]
     fn empty_str() {
-        assert_eq!(
-            string(EMPTY_STRING),
-            Ok(("", WsvValue::V("".to_owned())))
-        );
+        assert_eq!(string(EMPTY_STRING), Ok(("", WsvValue::V("".to_owned()))));
     }
 
     const EASY_LINE: &str = r##"1 2"##;
@@ -218,10 +219,7 @@ mod tests {
             line(EASY_LINE),
             Ok((
                 "",
-                vec![
-                    WsvValue::V("1".to_owned()),
-                    WsvValue::V("2".to_owned()),
-                ]
+                vec![WsvValue::V("1".to_owned()), WsvValue::V("2".to_owned()),]
             ))
         );
     }
@@ -254,60 +252,6 @@ mod tests {
 }
 
 #[cfg(test)]
-mod unit_tests {
-    use super::parse;
-    use crate::unit_tests::*;
-
-    #[test]
-    fn null() {
-        null_test(&parse)
-    }
-    #[test]
-    fn numbers() {
-        numbers_test(&parse)
-    }
-    #[test]
-    fn strings() {
-        strings_test(&parse)
-    }
-    #[test]
-    fn comments() {
-        comments_test(&parse)
-    }
-    #[test]
-    fn not_null() {
-        not_null_test(&parse)
-    }
-    #[test]
-    fn empty() {
-        empty_test(&parse)
-    }
-    #[test]
-    fn no_whitespace() {
-        no_whitespace_test(&parse)
-    }
-    #[test]
-    fn odd_quotes() {
-        odd_quotes_test(&parse)
-    }
-    #[test]
-    fn single_slash() {
-        single_slash_test(&parse)
-    }
-    #[test]
-    fn empty_string() {
-        empty_string_test(&parse)
-    }
-    #[test]
-    fn trailing_return() {
-        trailing_return_test(&parse)
-    }
-    #[test]
-    fn no_leading_whitespace() {
-        no_leading_whitespace_test(&parse)
-    }
-    #[test]
-    fn no_trailing_whitespace() {
-        no_trailing_whitespace_test(&parse)
-    }
-}
+use crate::unit;
+#[cfg(test)]
+unit! {}
