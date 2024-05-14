@@ -10,12 +10,23 @@ pub(crate) use nom::{
 
 use crate::data_model::*;
 
+// pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+//     match all_consuming(wsv)(i) {
+//         Ok((_, o)) => Ok(o),
+//         Err(e) => Err(Error::new(ErrorKind::Nom, 0, 0, Some(e.to_string().into()))),
+//     }
+// }
+
+// fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
+//     separated_list0(char('\n'), line)(i)
+// }
+
 pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
     i.split('\n').enumerate().map(parse_line).collect()
 }
 
 // we assume that line has no `\n`.
-fn parse_line((row_index, input): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+pub fn parse_line((row_index, input): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let row = row_index + 1;
     match all_consuming(line)(input) {
         Ok((_, o)) => Ok(o),

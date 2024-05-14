@@ -1,6 +1,14 @@
 A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes
 on https://honestlysam.uk/
 
+# 0.4.1
+
+### Monday 13th May 2024
+
+This repository is an exercise in all the features of the Rust programming language, as applied to a use case which is complex enough to highlight various edge cases, but no so complex that it takes hours to understand each one. It is also my attempt to demonstrate in code the various design principles I have collected on my journey to becoming an artisan engineer. It is my masterpiece, without the Masters. I plan to demonstrate my best efforts in static, streaming, parallel and async computation, benchmarking, testing and documentation.
+
+The end-goal of this repository is to settle on a parsing library for the WSV format. The applications of this format are beside the point. The value in choosing this format is that there is currently no other crate to handle this, and that it is simple enough that I can implement lots of variants 
+
 # 0.4.0
 
 ### Friday 10th May 2024

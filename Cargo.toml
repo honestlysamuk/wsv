@@ -21,14 +21,15 @@ itertools = "0.12.1"
 nom = { version = "7", optional = true }
 pest = { version = "2", optional = true }
 pest_derive = { version = "2", optional = true }
-nom-supreme = "0.8.0"
+nom-supreme = { version = "0.8.0", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 #divan = "0.1.14"
 
 [features]
-nom = ["dep:nom"]
+default = ["nom", "pest"]
+nom = ["dep:nom", "dep:nom-supreme"]
 pest = ["dep:pest", "dep:pest_derive"]
 #example = ["dep:tracing-subscriber", "dep:comfy-table"]
 

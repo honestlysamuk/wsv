@@ -4,6 +4,8 @@ macro_rules! unit {
         #[cfg(test)]
         mod tests {
             use super::parse;
+            use crate::data_model::Error;
+            use crate::data_model::ErrorKind::*;
             use crate::data_model::WsvValue;
             use crate::data_model::WsvValue::Null;
 
@@ -28,8 +30,10 @@ macro_rules! unit {
             fn no_whitespace_test() {
                 const INPUT: &str = r##"mmm"AAA"mmm"##;
                 match parse(INPUT) {
-                    Err(_) => println!("Successful"),
-                    Ok(v) => panic!("Parsed Malformed input: {v:?}"),
+                    Err(Error{kind: MissingWhitespace, row: 1, col: 4, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 4\nGot\n{e:?}"),                    Ok(v) => panic!("Parsed Malformed input: {v:?}"),
                 }
             }
 
@@ -37,7 +41,13 @@ macro_rules! unit {
             fn no_leading_whitespace_test() {
                 const INPUT: &str = r##"mmm"mmm" mmm"##;
                 match parse(INPUT) {
-                    Err(_) => println!("Successful"),
+                    // Err(Error{row: 1, col: 4, ..}) => {
+                    //     eprintln!("Successful");
+                    // },
+                    Err(Error{kind: MissingWhitespace, row: 1, col: 4, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 4\nGot\n{e:?}"),
                     Ok(v) => panic!("Parsed Malformed input: {v:?}"),
                 }
             }
@@ -46,16 +56,64 @@ macro_rules! unit {
             fn no_trailing_whitespace_test() {
                 const INPUT: &str = r##"mmm "mmm"mmm"##;
                 match parse(INPUT) {
-                    Err(_) => println!("Successful"),
+                    Err(Error{kind: MissingWhitespace, row: 1, col: 10, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 10\nGot\n{e:?}"),
                     Ok(v) => panic!("Parsed Malformed input: {v:?}"),
                 }
             }
 
             #[test]
-            fn odd_quotes_test() {
+            fn no_trailing_whitespace_and_odd_quotes_test() {
+                const INPUT: &str = r##"mmm "mmm"mmm""##;
+                match parse(INPUT) {
+                    Err(Error{kind: MissingWhitespace, row: 1, col: 10, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(Error{kind: OddDoubleQuotes, row: 1, col: 14, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 10\nOr\nOddDoubleQuotes, 1, 14\nGot\n{e:?}"),
+                    Ok(v) => panic!("Parsed Malformed input: {v:?}"),
+                }
+            }
+
+            #[test]
+            fn one_quote_test() {
                 const INPUT: &str = r##"""##;
                 match parse(INPUT) {
-                    Err(_) => println!("successful"),
+                    Err(Error{kind: OddDoubleQuotes, row: 1, col: 2, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nOddDoubleQuotes, 1, 2\nGot\n{e:?}"),
+                    Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
+                }
+            }
+
+            #[test]
+            fn odd_quotes_test() {
+                const INPUT: &str = r##"somthing " somethingelse"##;
+                match parse(INPUT) {
+                    Err(Error{kind: OddDoubleQuotes, row: 1, col: 25, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nOddDoubleQuotes, 1, 25\nGot\n{e:?}"),
+                    Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
+                }
+            }
+
+            #[test]
+            fn no_leading_whitespace_and_odd_quotes_test() {
+                const INPUT: &str = r##"somthing" somethingelse"##;
+                match parse(INPUT) {
+                    Err(Error{kind: MissingWhitespace, row: 1, col: 9, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(Error{kind: OddDoubleQuotes, row: 1, col: 24, ..}) => {
+                        println!("Successful");
+                    },
+                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 9\nGot\n{e:?}"),
                     Ok(v) => panic!("Parsed Odd Double Quotes: {v:?}"),
                 }
             }

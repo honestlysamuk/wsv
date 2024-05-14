@@ -29,45 +29,47 @@ fn parse_line((line_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error>
             return parse_line_without_comments((line_number, &line_without_comment));
         }
     }
-    Err(dbg!(Error::new(
+    Err(Error::new(
         ErrorKind::OddDoubleQuotes,
         line_number,
-        0,
-        None
-    )))
+        line_without_comment.len() + 1,
+        None,
+    ))
 }
 
 fn parse_line_without_comments((line_number, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let mut result: Vec<WsvValue> = Vec::new();
     let mut string = String::new();
+    let mut col = 0;
 
     for (i, (position, part)) in line.split('\"').with_position().enumerate() {
         match position {
             Position::Only => result.append(&mut process_part(part).0),
             Position::First => {
-                let (mut these_parts, _, trailing_ws) = process_part(part);
-                if !trailing_ws && !part.is_empty() {
-                    debug!(error = "No trailing whitespace", part);
-                    return Err(dbg!(Error::new(
-                        ErrorKind::NoTrailingWhitespace,
+                let (mut these_parts, _, leading_ws) = process_part(part);
+                col += part.len() + 1;
+                if !leading_ws && !part.is_empty() {
+                    debug!(error = "No leading whitespace", part);
+                    return Err(Error::new(
+                        ErrorKind::MissingWhitespace,
                         line_number,
-                        0,
-                        None
-                    )));
+                        col,
+                        None,
+                    ));
                 } else {
                     result.append(&mut these_parts);
                 }
             }
             Position::Last => {
-                let (mut these_parts, leading_ws, _) = process_part(part);
-                if !leading_ws && !part.is_empty() {
-                    debug!(error = "No leading whitespace", part);
-                    return Err(dbg!(Error::new(
-                        ErrorKind::NoLeadingWhitespace,
+                let (mut these_parts, trailing_ws, _) = process_part(part);
+                if !trailing_ws && !part.is_empty() {
+                    debug!(error = "No trailing whitespace", part);
+                    return Err(Error::new(
+                        ErrorKind::MissingWhitespace,
                         line_number,
-                        0,
-                        None
-                    )));
+                        col + 1,
+                        None,
+                    ));
                 } else {
                     result.push(WsvValue::new(&string));
                     string.clear();
@@ -76,6 +78,7 @@ fn parse_line_without_comments((line_number, line): (usize, &str)) -> Result<Vec
             }
             Position::Middle => {
                 if i % 2 == 1 {
+                    col += part.len() + 1; // + 1 for the missing quote
                     string.push_str(part);
                 } else {
                     match identify_string_part(part) {
@@ -83,24 +86,25 @@ fn parse_line_without_comments((line_number, line): (usize, &str)) -> Result<Vec
                         Decision::EndOfString => {
                             result.push(WsvValue::new(&string));
                             string.clear();
-                            let (mut these_parts, leading_ws, trailing_ws) = process_part(part);
+                            let (mut these_parts, trailing_ws, leading_ws) = process_part(part);
                             if !leading_ws {
                                 debug!(error = "No leading whitespace", part);
-                                return Err(dbg!(Error::new(
-                                    ErrorKind::NoLeadingWhitespace,
+                                return Err(Error::new(
+                                    ErrorKind::MissingWhitespace,
                                     line_number,
-                                    0,
-                                    None
-                                )));
+                                    col + part.len() + 1,
+                                    None,
+                                ));
                             } else if !trailing_ws {
                                 debug!(error = "No trailing whitespace", part);
-                                return Err(dbg!(Error::new(
-                                    ErrorKind::NoTrailingWhitespace,
+                                return Err(Error::new(
+                                    ErrorKind::MissingWhitespace,
                                     line_number,
-                                    0,
-                                    None
-                                )));
+                                    col + 1,
+                                    None,
+                                ));
                             } else {
+                                col += part.len() + 1;
                                 result.append(&mut these_parts);
                             }
                         }

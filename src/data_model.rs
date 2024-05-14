@@ -44,7 +44,7 @@ impl Display for Wsv {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum WsvValue {
     V(String),
-    Null
+    Null,
 }
 
 impl WsvValue {
@@ -83,7 +83,11 @@ pub struct Error {
 }
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} on row {}, position {}\nCaused by {:?}", self.kind, self.row, self.col, self.source)
+        write!(
+            f,
+            "{} on row {}, col {}\nCaused by {:?}",
+            self.kind, self.row, self.col, self.source
+        )
     }
 }
 impl std::error::Error for Error {}
@@ -91,26 +95,36 @@ impl std::error::Error for Error {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ErrorKind {
     OddDoubleQuotes,
-    NoLeadingWhitespace,
-    NoTrailingWhitespace,
     MissingWhitespace,
     Nom,
 }
 
 impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::OddDoubleQuotes => "Odd number of double quotes detected",
-            Self::NoLeadingWhitespace => "Missing whitespace on the left side of this double quote",
-            Self::NoTrailingWhitespace => "Missing whitespace on the right side of this double quote",
-            Self::MissingWhitespace => "Missing whitespace on one side of this double quote",
-            Self::Nom => "Nom Error",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::OddDoubleQuotes => "Odd number of double quotes detected",
+                Self::MissingWhitespace => "Whitespace expected",
+                Self::Nom => "Nom Error",
+            }
+        )
     }
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind, row: usize, col: usize, source: Option<Box<dyn std::error::Error>>) -> Error {
-        Error {kind, row, col, source}
+    pub fn new(
+        kind: ErrorKind,
+        row: usize,
+        col: usize,
+        source: Option<Box<dyn std::error::Error>>,
+    ) -> Error {
+        Error {
+            kind,
+            row,
+            col,
+            source,
+        }
     }
 }

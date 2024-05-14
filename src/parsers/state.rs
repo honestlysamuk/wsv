@@ -5,7 +5,7 @@ pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
 }
 
 // we assume that line has no `\n`.
-fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+pub fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let row = row_index + 1;
     let mut inputs = line.chars();
     let mut state = State::Default;
@@ -120,11 +120,11 @@ impl State {
 
             (State::MayBeNull, None) => State::Null,
             (State::MayBeNull, Some(c)) if c.is_whitespace() => State::Null,
-            (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace),
+            (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
             (State::MayBeNull, Some(c)) => State::Value(c),
 
             (State::Value(_), None) => State::EndOfValue,
-            (State::Value(_), Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace),
+            (State::Value(_), Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
             (State::Value(_), Some('#')) => State::Comment,
             (State::Value(_), Some(c)) if c.is_whitespace() => State::EndOfValue,
             (State::Value(_), Some(c)) => State::Value(c),
@@ -146,10 +146,10 @@ impl State {
             (State::EscapeOrEndOfString, Some('\"')) => State::EscapedDoubleQuote,
             (State::EscapeOrEndOfString, Some('/')) => State::MayBeEscapedReturn,
             (State::EscapeOrEndOfString, Some(c)) if c.is_whitespace() => State::EndOfValue,
-            (State::EscapeOrEndOfString, _) => State::Error(ErrorKind::NoTrailingWhitespace),
+            (State::EscapeOrEndOfString, _) => State::Error(ErrorKind::MissingWhitespace),
 
             (State::MayBeEscapedReturn, Some('\"')) => State::EscapedReturn,
-            (State::MayBeEscapedReturn, _) => State::Error(ErrorKind::NoTrailingWhitespace),
+            (State::MayBeEscapedReturn, _) => State::Error(ErrorKind::MissingWhitespace),
 
             (State::StringPart(_), None) => State::Error(ErrorKind::OddDoubleQuotes),
             (State::StringPart(_), Some('\"')) => State::EscapeOrEndOfString,

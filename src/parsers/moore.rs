@@ -27,118 +27,30 @@ fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> 
     let mut inputs = line.chars();
     let mut state = State::Default;
     let end_state = State::Finished;
+    let mut data = Data::new(row);
 
-    (0..)
-        .map_while(|_| {
-            if end_state == state {
-                None
-            } else {
-                state = transition(state, inputs.next());
-                Some(g(state))
-            }
-        })
-        .fold(Data::new(row), |data, o| data.apply(o))
-        .reconcile()
+    while end_state != state {
+        state = transition(state, inputs.next());
+        data = data.apply(g(state));
+    }
 
-    // while end_state != state {
-    //     state = transition(state, inputs.next());
-    //     let output_letter = g(state);
-    //     output.push(output_letter);
-    // }
-    // let mut data = Data::new(row);
-    // for o in output {
-    //     data = data.apply(o);
-    // }
-    // return data.reconcile();
+    return data.reconcile();
+
+    // // It is more 'idiomatic' in Rust to coerce your core logic into a chain of iterators.
+    // // This is for good reason. It allows the compiler more freedom to optimise. In this case,
+    // // however, it is slower, and far less readable for those not familiar with the idiom.
+    // (0..)
+    //     .map_while(|_| {
+    //         if end_state == state {
+    //             None
+    //         } else {
+    //             state = transition(state, inputs.next());
+    //             Some(g(state))
+    //         }
+    //     })
+    //     .fold(Data::new(row), |data, o| data.apply(o))
+    //     .reconcile()
 }
-
-// fn state_machine<I>(
-//     inputs: &mut Chars,
-//     initial_state: State,
-//     end_state: State,
-// ) -> impl Iterator<Item = Transform> {
-//     let mut state = initial_state;
-//     (0..).map_while(|_| {
-//         if end_state == state {
-//             None
-//         } else {
-//             state = transition(state, inputs.next());
-//             Some(g(state))
-//         }
-//     })
-// }
-
-// impl Iterator for StateMachine {
-//     fn next() -> Option<Transform> {
-//         if self.end_states.contains(&self.state) {
-//             None
-//         } else {
-//             self.state = transition(self.state, Some(i));
-//             Some(g(self.state))
-//         }
-//     }
-// }
-
-// trait MooreMachine<S, In, Out>
-// where
-//     S: std::cmp::PartialEq,
-// {
-//     type InputSet;
-//     type Transform;
-//     type StateSpace;
-
-//     fn transition(state: StateSpace, input: InputSet) -> StateSpace;
-//     fn map(state: StateSpace) -> Transform;
-//     fn initial_state() -> StateSpace;
-//     fn final_states() -> [StateSpace];
-//     fn execute_on(inputs: In) -> Out
-//     where
-//         In: IntoIterator<Item = InputSet>,
-//         Out: IntoIterator<Item = Transform>;
-// }
-
-// struct MooreMachine<S, I, O>
-// where
-//     S: std::cmp::PartialEq,
-// {
-//     state: S,
-//     end_states: Vec<S>,
-//     delta: Box<dyn Fn(S, I) -> S>,
-//     g: Box<dyn Fn(&S) -> O>,
-// }
-
-// impl<S, I, O> MooreMachine<S, I, O>
-// where
-//     S: std::cmp::PartialEq,
-// {
-//     fn execute_on<In, Out>(self, input: In) -> Out
-//     where
-//         In: IntoIterator<Item = I>,
-//         Out: IntoIterator<Item = O>,
-//     {
-//         input
-//             .into_iter()
-//             .fuse()
-//             .map_while(|i| {
-//                 if self.end_states.contains(&self.state) {
-//                     None
-//                 } else {
-//                     self.state = transition(self.state, i);
-//                     Some(g(&self.state))
-//                 }
-//             })
-//             .into()
-//     }
-// }
-//         .into_iter()
-//         .fold(Data::new(row), |data, o| data.apply(o))
-//         .reconcile()
-// }
-
-// struct MealyMachine<S, I, O> {
-//     delta: Fn(S, I) -> S,
-//     g: Fn(S, I) -> O,
-// }
 
 /// Imagine for this one that I actually have a `PushChar` variant for every `char`,
 /// and an `AddError` variant for every `kind`. Then, each variant represents a
@@ -206,8 +118,6 @@ type InputSet = Option<char>;
 fn transition(state: State, event: InputSet) -> State {
     match (state, event) {
         // Example of how there are actually five error states, not one.
-        (State::Error(ErrorKind::NoLeadingWhitespace), _) => State::Finished,
-        (State::Error(ErrorKind::NoTrailingWhitespace), _) => State::Finished,
         (State::Error(ErrorKind::MissingWhitespace), _) => State::Finished,
         (State::Error(ErrorKind::OddDoubleQuotes), _) => State::Finished,
         (State::Error(ErrorKind::Nom), _) => State::Finished,
@@ -217,7 +127,7 @@ fn transition(state: State, event: InputSet) -> State {
         // Similarly, I could define a row for every variant of the InputAlphabet, but since
         // Rust allows for the blanket pattern matching,
         (State::Value(_), None) => State::EndOfValue,
-        (State::Value(_), Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace),
+        (State::Value(_), Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
         (State::Value(_), Some('#')) => State::Comment,
         (State::Value(_), Some(c)) if c.is_whitespace() => State::EndOfValue,
         (State::Value(_), Some('A')) => State::ValueA, // Extra
@@ -226,7 +136,7 @@ fn transition(state: State, event: InputSet) -> State {
         (State::Value(_), Some(c)) => State::Value(c),
 
         (State::ValueA, None) => State::EndOfValue, // Extra
-        (State::ValueA, Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace), // Extra
+        (State::ValueA, Some('\"')) => State::Error(ErrorKind::MissingWhitespace), // Extra
         (State::ValueA, Some('#')) => State::Comment, // Extra
         (State::ValueA, Some(c)) if c.is_whitespace() => State::EndOfValue, // Extra
         (State::ValueA, Some('A')) => State::ValueA, // Extra
@@ -265,7 +175,7 @@ fn transition(state: State, event: InputSet) -> State {
 
         (State::MayBeNull, None) => State::Null,
         (State::MayBeNull, Some(c)) if c.is_whitespace() => State::Null,
-        (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::NoLeadingWhitespace),
+        (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
         (State::MayBeNull, Some('A')) => State::ValueA, // Extra
         (State::MayBeNull, Some(c)) => State::Value(c),
 
@@ -286,10 +196,10 @@ fn transition(state: State, event: InputSet) -> State {
         (State::EscapeOrEndOfString, Some('\"')) => State::EscapedDoubleQuote,
         (State::EscapeOrEndOfString, Some('/')) => State::MayBeEscapedReturn,
         (State::EscapeOrEndOfString, Some(c)) if c.is_whitespace() => State::EndOfValue,
-        (State::EscapeOrEndOfString, _) => State::Error(ErrorKind::NoTrailingWhitespace),
+        (State::EscapeOrEndOfString, _) => State::Error(ErrorKind::MissingWhitespace),
 
         (State::MayBeEscapedReturn, Some('\"')) => State::EscapedReturn,
-        (State::MayBeEscapedReturn, _) => State::Error(ErrorKind::NoTrailingWhitespace),
+        (State::MayBeEscapedReturn, _) => State::Error(ErrorKind::MissingWhitespace),
     }
 }
 
