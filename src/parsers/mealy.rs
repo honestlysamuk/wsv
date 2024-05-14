@@ -1,3 +1,12 @@
+//! The Mealy variation actually changes very little, cosmetically. All that has happened is
+//! instead of storing the current character on the Value or StringPart state, we
+//! are just using the input again in the g function. This reduces the number of possible states
+//! significantly. Remember that there are 149,878 unicode characters (as of Unicode v15.1),
+//! each of which had its own state. This change reduces the number of states by 299,756.
+//! Fortunately, since Rust has the _ character in pattern matching, this change is mostly transparent.
+//!
+//! The input set is still this number plus one for the None case.
+
 use crate::data_model::*;
 pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
     i.split('\n').enumerate().map(parse_line).collect()
