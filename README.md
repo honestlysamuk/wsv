@@ -1,4 +1,4 @@
-
+```wsv
                                                                
 `8.`888b                 ,8' d888888o.    `8.`888b           ,8' 
  `8.`888b               ,8  '.`8888:' `88.   `8.`888b         ,8'  
@@ -12,7 +12,7 @@
          `8.`   `8'    -     `Y8888P ,88P'   -       `8.`          
 
 
-
+```
 A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes
 on https://honestlysam.uk/
 
