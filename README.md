@@ -23,7 +23,7 @@ WSV is an educational library, showcasing one format interpreted by every parsin
 
 Join me in my journey to showcase the diversity Rust has to offer the budding parse developer.
 
-Release notes can be found [here](./release_notes.md).
+Release notes can be found [here](https://github.com/honestlysamuk/wsv/blob/main/release_notes.md).
 For more on my wider motivation for this library, see : [here](https://honestlysam.uk/superpower/).
 
 I believe that Rust's greatest superpower is in its educational potential. It is designed to be verbose, explicit and intentional, which cannot help but bleed into the teaching of the language too. Consequently, every parsing library I have found has fantastic documentation and examples of lots of different formats which they handle. However, while this is beneficial for improving your understanding of a single crate, it does not help to choose it in the first place.
