@@ -1,12 +1,24 @@
+# 0.5.0
 
+### Monday 20th May 2024
 
-# 0.4.1
+Fleshed out the README.md with much more detail about my objective with this crate and progress. To summarise:
 
-### Monday 13th May 2024
+> This repository is an exercise in all the features of the Rust programming language, as applied to a use case which is complex enough to actually need most of them, but not so complex that it takes hours to understand and implement each one. It is also my attempt to demonstrate in code the various design principles I have collected on my journey to becoming an artisan engineer. It is my masterpiece, without the Masters. I plan to demonstrate my best efforts in static, streaming, parallel and async computation, benchmarking, testing and documentation.
+> 
+> It is also to demonstrate the use of every parsing crate I can get my hands on, applied to just one format, so that a casual reader may use it to help decide which one to use for themselves. The applications of this format are beside the point. The value in choosing this format is that there is currently no other crate to handle this, and that it is simple enough that I can implement lots of variants.
 
-This repository is an exercise in all the features of the Rust programming language, as applied to a use case which is complex enough to highlight various edge cases, but no so complex that it takes hours to understand each one. It is also my attempt to demonstrate in code the various design principles I have collected on my journey to becoming an artisan engineer. It is my masterpiece, without the Masters. I plan to demonstrate my best efforts in static, streaming, parallel and async computation, benchmarking, testing and documentation.
+Switched benchmarking frameworks from Criterion to Divan. Starting with Criterion was a good decision, since it informed what I should expect from Divan. Thank you Criterion devs. Divan facilitates keeping the benchmark code closer to the source code, so it took some experimenting to settle on the current structure. Also added `Mealy` and `Moore` state machine implementations, which are slower than my first state machine, but serve as a solid demonstration of each concept. Still need to polish them to be eligible for teaching.
 
-The end-goal of this repository is to settle on a parsing library for the WSV format. The applications of this format are beside the point. The value in choosing this format is that there is currently no other crate to handle this, and that it is simple enough that I can implement lots of variants 
+`Nom` remains the second fastest, behind `State`, but still doesn't have all error features, and so I discount the result from the benchmark until it is fully featured.
+
+Keeping all notes in this repo now. Created an `IO` module to contain uses of the parse functions which are then the subject of benchmarking. Added a `parse_strict` variant which takes on the functionality of the old `parse`, and now `parse` returns a `Vec` of `Result`s, where `parse_strict` returns a `Result` of `Vec`s. Possibly better to name them `parse` and `parse_lossy`. Not sure.
+
+TODO:
+
+1. `Serde` implementation (easier now, with focus on the line over the file)
+2. Handle `nom` errors better.
+3. Improve Mealy and Moore docs and impl for teaching.
 
 # 0.4.0
 
@@ -17,11 +29,11 @@ Added a new parser implementation, using a state machine. The current impl is ho
 TODO:
 
 1. Serde implementation (easier now, with focus on the line over the file)
-2. Shift integration tests to unit or doc tests.
-3. Benchmarking: Learn Divan
+2. ~~Shift integration tests to unit or doc tests.~~
+3. ~~Benchmarking: Learn Divan~~
 4. Handle nom errors better.
 5. Augment the state machine impl for teaching.
-5. Other documentation.
+5. ~~Other documentation.~~
 
 
 # 0.3.2
@@ -33,7 +45,7 @@ Fixed trailing whitespace bug with primitive. Renamed primitive2 to split. Added
 TODO:
 
 1. Serde implementation
-2. Shift focus to line parsing, in prep for stream parsing.
+2. ~~Shift focus to line parsing, in prep for stream parsing.~~
 2. Shift integration tests to unit or doc tests. Integration tests need to be different now, since serde does not have the halfway point I am currently testing to.
 3. Benchmarking: Learn Divan
 4. Learn how to handle errors better.
@@ -46,8 +58,8 @@ Fixed bugs with primitive2 and pest. Added more tests, and added benchmarks with
 
 TODO:
 
-1. Fix error tests on nom and pest. Learn how to handle errors better.
-2. feature gates for all parsers.
+1. ~~Fix error tests on nom and pest. Learn how to handle errors better.~~
+2. ~~feature gates for all parsers.~~
 3. Serde implementation
 4. Shift integration tests to unit or doc tests
 5. Benchmarking: Learn Divan
@@ -68,7 +80,7 @@ TODO:
 1. Fix error tests on nom and pest. Learn how to handle errors better.
 2. feature gates for all parsers.
 3. Serde implementation
-4. Benchmarking: Learn Divan or Criterion
+4. Benchmarking: Learn Divan ~~or Criterion~~
 5. Documentation
 6. Shift integration tests to unit or doc tests
 
@@ -86,9 +98,9 @@ I also played with the tracing crate, which was somewhat useful for debugging bu
 
 TODO:
 
-1. CLI interface
+1. ~~CLI interface~~
 2. Serde implementation
-3. Benchmarking: Produce a huge file for this.
+3. ~~Benchmarking: Produce a huge file for this.~~
 4. Documentation
 5. Shift integration tests to unit or doc tests
 

@@ -1,11 +1,11 @@
 [package]
 name = "wsv"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["honestlysamuk"]
 edition = "2021"
-description = "A Rust implementation of the Whitespace-separated values, as defined by Stenway. Follow the release notes on https://honestlysam.uk"
+description = "A collection of implementations of the Whitespace-separated values, as defined by Stenway. Follow the release notes on https://honestlysam.uk"
 license = "MIT"
-homepage = "https://honestlysam.uk/"
+homepage = "https://github.com/honestlysamuk/wsv"
 documentation = "https://dev.stenway.com/WSV/"
 repository = "https://github.com/honestlysamuk/wsv"
 readme = "README.md"
@@ -15,14 +15,14 @@ readme = "README.md"
 [dependencies]
 thiserror = "1"
 comfy-table = "7"
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
-itertools = "0.12.1"
+tracing = "0"
+tracing-subscriber = "0"
+itertools = "0"
 nom = { version = "7", optional = true }
 pest = { version = "2", optional = true }
 pest_derive = { version = "2", optional = true }
-nom-supreme = { version = "0.8.0", optional = true }
-divan = "0.1.14"
+nom-supreme = { version = "0", optional = true }
+divan = "0"
 
 [dev-dependencies]
 #criterion = { version = "0.5.1", features = ["html_reports"] }

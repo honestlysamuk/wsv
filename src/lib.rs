@@ -10,7 +10,7 @@ pub use crate::data_model::ErrorKind;
 pub use crate::data_model::Wsv;
 pub use crate::data_model::WsvValue;
 
-pub mod io;
+mod io;
 #[doc(inline)]
 pub use crate::first::parse_line;
 #[doc(inline)]

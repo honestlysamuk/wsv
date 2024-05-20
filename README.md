@@ -59,16 +59,16 @@ The ASCII title is also a valid WSV file. If anyone knows how to get GitHub to h
 
 Implement parsers using the following tools:
 1. ***State-like***
-   1. Mealy machine (/)
-   2. Moore machine (/)
+   1. ~~Mealy machine~~
+   2. ~~Moore machine~~
 2. ***Combinator-like***
-   1. nom (/)
+   1. ~~nom~~
    2. Winnow
 3. ***serde-like***
    1. Serde
    2. Rkyv
 4. ***grammar-like***
-   1. Pest (/)
+   1. ~~Pest~~
    2. Oak
    3. Peginator
    4.  rust-peg
