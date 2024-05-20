@@ -1,3 +1,10 @@
+//! This implementation was heavily informed by the grammar I wrote for the pest parser.
+//!
+//! It is currently the top contender for fastest, but it still does not satisfy the
+//! requirement of clear error messages. If someone knows a way to extract row and column
+//! numbers, and even to differentiate between the two error states, I would love to know.
+//! Initial investigation suggests using nom-supreme. Any other ideas?
+
 pub(crate) use nom::{
     branch::alt,
     bytes::complete::{tag, take_till, take_while},
@@ -10,19 +17,21 @@ pub(crate) use nom::{
 
 use crate::data_model::*;
 
-// pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
-//     match all_consuming(wsv)(i) {
-//         Ok((_, o)) => Ok(o),
-//         Err(e) => Err(Error::new(ErrorKind::Nom, 0, 0, Some(e.to_string().into()))),
-//     }
-// }
-
-// fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
-//     separated_list0(char('\n'), line)(i)
-// }
-
-pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+pub fn parse(i: &str) -> Vec<Result<Vec<WsvValue>, Error>> {
     i.split('\n').enumerate().map(parse_line).collect()
+}
+
+/// Here, I have built a nom parser to handle new lines as well, which is what is being tested in
+/// the micro benchmark.
+pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+    match all_consuming(wsv)(i) {
+        Ok((_, o)) => Ok(o),
+        Err(e) => Err(Error::new(ErrorKind::Nom, 0, 0, Some(e.to_string().into()))),
+    }
+}
+
+fn wsv(i: &str) -> IResult<&str, Vec<Vec<WsvValue>>> {
+    separated_list0(char('\n'), line)(i)
 }
 
 // we assume that line has no `\n`.

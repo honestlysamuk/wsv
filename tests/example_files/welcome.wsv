@@ -1,0 +1,7 @@
+"Welcome to WSV!" 
+"Run this binary on a file path"/"and you'll get a very ""pretty"" table."
+"Nulls are formatted like " - - -
+"Empty strings look like " "" ""
+"Errors are useful too, since only lines can fail:"
+"
+""a

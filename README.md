@@ -17,6 +17,8 @@
 
 <sup>ASCII credits go to the Broadway font on [patorjk.com](patorjk.com). Thanks!</sup>
 
+# Introduction
+
 This library aims to solve the problem of choice paralysis for parser tooling.
 
 WSV is an educational library, showcasing one format interpreted by every parsing crate existing in the Rust ecosystem. It is a broad church, covering methods appropriate for data ingestion and persistance, programming language lexing and natural language processing tools. The WSV format is a goldilocks format, simple enough to understand in a few minutes, complex enough to house some interesting edge cases.
@@ -56,20 +58,20 @@ The ASCII title is also a valid WSV file. If anyone knows how to get GitHub to h
 # The Next Objective
 
 Implement parsers using the following tools:
-***State-like*** :
-Mealy machine (/)
-Moore machine (/)
-***Combinator-like*** : 
-nom (/)
-Winnow
-***serde-like*** :
-Serde
-Rkyv
-***grammar-like*** :
-Pest (/)
-Oak
-Peginator
-rust-peg
+1. ***State-like***
+   1. Mealy machine (/)
+   2. Moore machine (/)
+2. ***Combinator-like***
+   1. nom (/)
+   2. Winnow
+3. ***serde-like***
+   1. Serde
+   2. Rkyv
+4. ***grammar-like***
+   1. Pest (/)
+   2. Oak
+   3. Peginator
+   4.  rust-peg
 
 # Contributing
 

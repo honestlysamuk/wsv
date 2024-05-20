@@ -3,7 +3,7 @@ macro_rules! unit {
     () => {
         #[cfg(test)]
         mod tests {
-            use super::parse;
+            use super::parse_strict;
             use crate::data_model::Error;
             use crate::data_model::ErrorKind::*;
             use crate::data_model::WsvValue;
@@ -29,21 +29,19 @@ macro_rules! unit {
             #[test]
             fn no_whitespace_test() {
                 const INPUT: &str = r##"mmm"AAA"mmm"##;
-                match parse(INPUT) {
+                match parse_strict(INPUT) {
                     Err(Error{kind: MissingWhitespace, row: 1, col: 4, ..}) => {
                         println!("Successful");
                     },
-                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 4\nGot\n{e:?}"),                    Ok(v) => panic!("Parsed Malformed input: {v:?}"),
+                    Err(e) => panic!("Wrong error. Expected\nMissingWhitespace, 1, 4\nGot\n{e:?}"),
+                    Ok(v) => panic!("Parsed Malformed input: {v:?}"),
                 }
             }
 
             #[test]
             fn no_leading_whitespace_test() {
                 const INPUT: &str = r##"mmm"mmm" mmm"##;
-                match parse(INPUT) {
-                    // Err(Error{row: 1, col: 4, ..}) => {
-                    //     eprintln!("Successful");
-                    // },
+                match parse_strict(INPUT) {
                     Err(Error{kind: MissingWhitespace, row: 1, col: 4, ..}) => {
                         println!("Successful");
                     },
@@ -55,7 +53,7 @@ macro_rules! unit {
             #[test]
             fn no_trailing_whitespace_test() {
                 const INPUT: &str = r##"mmm "mmm"mmm"##;
-                match parse(INPUT) {
+                match parse_strict(INPUT) {
                     Err(Error{kind: MissingWhitespace, row: 1, col: 10, ..}) => {
                         println!("Successful");
                     },
@@ -67,7 +65,7 @@ macro_rules! unit {
             #[test]
             fn no_trailing_whitespace_and_odd_quotes_test() {
                 const INPUT: &str = r##"mmm "mmm"mmm""##;
-                match parse(INPUT) {
+                match parse_strict(INPUT) {
                     Err(Error{kind: MissingWhitespace, row: 1, col: 10, ..}) => {
                         println!("Successful");
                     },
@@ -82,7 +80,7 @@ macro_rules! unit {
             #[test]
             fn one_quote_test() {
                 const INPUT: &str = r##"""##;
-                match parse(INPUT) {
+                match parse_strict(INPUT) {
                     Err(Error{kind: OddDoubleQuotes, row: 1, col: 2, ..}) => {
                         println!("Successful");
                     },
@@ -94,7 +92,7 @@ macro_rules! unit {
             #[test]
             fn odd_quotes_test() {
                 const INPUT: &str = r##"somthing " somethingelse"##;
-                match parse(INPUT) {
+                match parse_strict(INPUT) {
                     Err(Error{kind: OddDoubleQuotes, row: 1, col: 25, ..}) => {
                         println!("Successful");
                     },
@@ -106,7 +104,7 @@ macro_rules! unit {
             #[test]
             fn no_leading_whitespace_and_odd_quotes_test() {
                 const INPUT: &str = r##"somthing" somethingelse"##;
-                match parse(INPUT) {
+                match parse_strict(INPUT) {
                     Err(Error{kind: MissingWhitespace, row: 1, col: 9, ..}) => {
                         println!("Successful");
                     },
@@ -126,49 +124,49 @@ macro_rules! unit {
                     vec![v("CommentExAmple")],
                     vec![v("but"), v(" # "), v("is"), v("fine")],
                 ];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
             fn not_null_test() {
                 const INPUT: &str = r#""-""#;
                 let output = vec![vec![v("-")]];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
             fn single_slash_test() {
                 const INPUT: &str = r#""/""#;
                 let output = vec![vec![v("/")]];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
             fn empty_test() {
                 const INPUT: &str = "";
                 let output = vec![vec![]];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
             fn trailing_return_test() {
                 const INPUT: &str = "5\n";
                 let output = vec![vec![v("5")], vec![]];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
             fn null_test() {
                 const INPUT: &str = "-";
                 let output = vec![vec![Null]];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
             fn numbers_test() {
                 const INPUT: &str = "1 2.0 3.4.5 6.789";
                 let output = vec![vec![v("1"), v("2.0"), v("3.4.5"), v("6.789")]];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
@@ -193,7 +191,7 @@ macro_rules! unit {
                     vec![v("8"), v(""), v("9")],
                     vec![v("a"), v(""), v("b")],
                 ];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
 
             #[test]
@@ -208,7 +206,7 @@ macro_rules! unit {
                     vec![v("these\"years"), v("you'd\nlike")],
                     vec![v("\n"), v("\""), v("#"), v("/")],
                 ];
-                do_test!(parse, INPUT, output);
+                do_test!(parse_strict, INPUT, output);
             }
         }
     };

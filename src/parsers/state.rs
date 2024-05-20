@@ -1,20 +1,29 @@
+//! My first implementation of a state machine.
+//!
+//! I am still experimenting with alternative versions, to showcase the true machine underneath, regardless of speed.
+//!
 use crate::data_model::*;
 
-pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+    i.split('\n').enumerate().map(parse_line).collect()
+}
+
+pub fn parse(i: &str) -> Vec<Result<Vec<WsvValue>, Error>> {
     i.split('\n').enumerate().map(parse_line).collect()
 }
 
 // we assume that line has no `\n`.
 pub fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
-    let row = row_index + 1;
+    let mut data = Data::new(row_index + 1);
     let mut inputs = line.chars();
-    let mut state = State::Default;
-    let finished_states = [State::Finished];
-    let mut data = Data::new(row);
-
-    while !finished_states.contains(&state) {
-        state = state.transition(inputs.next());
+    let mut state: State = State::Default;
+    loop {
+        let next_input = inputs.next();
+        state = state.transition(next_input);
         data.modify_with(&state);
+        if next_input.is_none() {
+            break;
+        }
     }
 
     data.reconcile()
@@ -66,7 +75,7 @@ impl Data {
     }
     fn reconcile(self) -> Result<Vec<WsvValue>, Error> {
         match self.err {
-            Some(e) => Err(dbg!(e)),
+            Some(e) => Err(e),
             None => Ok(self.out),
         }
     }

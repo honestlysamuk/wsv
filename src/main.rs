@@ -1,62 +1,22 @@
-// use std::env;
-//use std::error::Error;
-// use std::fs::read_to_string;
+use std::env;
+use std::error::Error as stdError;
+use std::fs::File;
 // use tracing::subscriber::set_global_default as sgd;
-// use tracing::Level;
 // use tracing_subscriber::FmtSubscriber as sub;
-//use wsv::parsers::*;
-use wsv::ErrorKind::*;
+// use tracing::Level;
 use wsv::*;
-// rust-analyzer.inlayHints.typeHints.enable
 
 fn main() {
-    // sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
-    // let input = env::args().nth(1).unwrap_or(String::from("odd_quotes"));
-    // if let Err(err) = run(input) {
-    //     println!("{:?}", err);
-    // }
-
-    const INPUT: &str = r##"mmm"mmm" mmm"##;
-    match state::parse(INPUT) {
-        Err(Error {
-            kind: OddDoubleQuotes,
-            row: 1,
-            col: 4,
-            ..
-        }) => {
-            eprintln!("Successful");
-        }
-        // Err(Error{kind: OddDoubleQuotes, row: 0, col: 0, ..}) => {
-        //     println!("Successful");
-        // },
-        Err(e) => println!("Wrong error. Got {e}"),
-        Ok(v) => println!("Parsed Malformed input: {v:?}"),
+    //sgd(sub::builder().with_max_level(Level::TRACE).finish()).unwrap();
+    let input = env::args().nth(1).unwrap_or(String::from("welcome"));
+    if let Err(err) = run(input) {
+        println!("{:?}", err);
     }
 }
 
-// for record in WsvReader::builder().(file)?.into_iter() {
-//     let country: Country = record.deserialize()?;
-//     println!("{country:?}");
-// }
+fn run(input: String) -> Result<(), Box<dyn stdError>> {
+    let mut file: File = File::open(["./tests/example_files/", &input, ".wsv"].concat())?;
 
-// fn run(input: String) -> Result<(), Box<dyn Error>> {
-//     let contents = read_to_string::<String>(["./tests/example_files/", &input, ".wsv"].concat())?;
-
-//     let wsv = nom::parse(&contents)?;
-
-//     let sum = wsv
-//         .iter()
-//         .map(|row| {
-//             if let Some(WsvValue::V(string)) = row.first() {
-//                 string.len()
-//             } else {
-//                 0
-//             }
-//         })
-//         .sum::<usize>();
-
-//     println!("done: {}", sum);
-//     println!();
-//     println!("{}", Wsv(wsv));
-//     Ok(())
-// }
+    println!("{}", Wsv(from_reader(&mut file)));
+    Ok(())
+}

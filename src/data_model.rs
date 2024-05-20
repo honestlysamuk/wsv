@@ -4,9 +4,34 @@ use std::fmt::Display;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::{Attribute, Cell, Color, Table};
 
+#[derive(Default, Debug, Copy, Clone)]
+pub(crate) enum Parser {
+    Nom,
+    State,
+    Mealy,
+    Moore,
+    Split,
+    #[default]
+    First,
+}
+
+type ParserFn = &'static dyn Fn((usize, &str)) -> Result<Vec<WsvValue>, Error>;
+
+impl Parser {
+    pub fn fn_ptr(self) -> ParserFn {
+        match self {
+            Parser::First => &crate::first::parse_line,
+            Parser::Nom => &crate::nom::parse_line,
+            Parser::Split => &crate::split::parse_line,
+            Parser::State => &crate::state::parse_line,
+            Parser::Moore => &crate::moore::parse_line,
+            Parser::Mealy => &crate::mealy::parse_line,
+        }
+    }
+}
+
 #[repr(transparent)]
-#[derive(PartialEq, Eq)]
-pub struct Wsv(pub Vec<Vec<WsvValue>>);
+pub struct Wsv(pub Vec<Result<Vec<WsvValue>, Error>>);
 
 impl fmt::Debug for Wsv {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -18,24 +43,27 @@ impl Display for Wsv {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut table = Table::new();
         table.apply_modifier(UTF8_ROUND_CORNERS);
-
         for line in &self.0 {
-            table.add_row(line.iter().map(|el| {
-                match el {
-                    WsvValue::V(val) => {
-                        if val.is_empty() {
-                            Cell::new("Empty")
-                                .add_attribute(Attribute::Bold)
-                                .fg(Color::Blue)
-                        } else {
-                            Cell::new(val)
-                        }
-                    }
-                    WsvValue::Null => Cell::new("NULL")
+            match line {
+                Err(e) => {
+                    table.add_row(vec![Cell::new(e.to_string())
                         .add_attribute(Attribute::Bold)
-                        .fg(Color::Green),
+                        .fg(Color::DarkRed)]);
                 }
-            }));
+                Ok(line) => {
+                    table.add_row(line.iter().map(|el| {
+                        match el {
+                            WsvValue::Null => Cell::new("NULL")
+                                .add_attribute(Attribute::Bold)
+                                .fg(Color::Green),
+                            WsvValue::V(val) if val.is_empty() => Cell::new("Empty String")
+                                .add_attribute(Attribute::Bold)
+                                .fg(Color::Blue),
+                            WsvValue::V(val) => Cell::new(val),
+                        }
+                    }));
+                }
+            }
         }
         write!(f, "{}", table)
     }
@@ -83,11 +111,18 @@ pub struct Error {
 }
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{} on row {}, col {}\nCaused by {:?}",
-            self.kind, self.row, self.col, self.source
-        )
+        match &self.source {
+            Some(val) => {
+                write!(
+                    f,
+                    "{} on row {}, col {}\nCaused by {:?}",
+                    self.kind, self.row, self.col, val
+                )
+            }
+            None => {
+                write!(f, "{} on row {}, col {}", self.kind, self.row, self.col)
+            }
+        }
     }
 }
 impl std::error::Error for Error {}

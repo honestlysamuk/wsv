@@ -22,18 +22,18 @@ nom = { version = "7", optional = true }
 pest = { version = "2", optional = true }
 pest_derive = { version = "2", optional = true }
 nom-supreme = { version = "0.8.0", optional = true }
+divan = "0.1.14"
 
 [dev-dependencies]
-criterion = { version = "0.5.1", features = ["html_reports"] }
-#divan = "0.1.14"
+#criterion = { version = "0.5.1", features = ["html_reports"] }
+divan = "0.1.14"
 
 [features]
 default = ["nom", "pest"]
 nom = ["dep:nom", "dep:nom-supreme"]
 pest = ["dep:pest", "dep:pest_derive"]
-#example = ["dep:tracing-subscriber", "dep:comfy-table"]
 
 [[bench]]
-name = "dest"
+name = "div"
 harness = false
-required-features = ["nom", "pest"]
+#required-features = ["nom", "pest"]

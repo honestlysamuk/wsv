@@ -12,27 +12,15 @@
 //! The input set is still this number plus one for the None case.
 
 use crate::data_model::*;
-pub fn parse(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
-    i.split('\n').enumerate().map(parse_line).collect()
+
+pub fn parse(i: &str) -> Vec<Result<Vec<WsvValue>, Error>> {
+    i.split("n").enumerate().map(parse_line).collect()
 }
-fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
-    // File rows are one-indexed.
-    let mut data = Data::new(row_index + 1);
 
-    // I can get the same behaviour if I just call next() on the chars iterator, but I've made the input
-    // set explicit to indicate that I'm not just iterating over the characters of the input. I've had
-    // remove all '\n's and add a None to indicate termination of the row. This is a simplification on my
-    // part. It is so I can use
+pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
+    let input_set = i.chars().map(Some).chain(vec![None]);
 
-    let input_set = line.chars().map(Some).chain(vec![None]);
-
-    let mut wsv = WsvMachine::default();
-    for i in input_set {
-        data.apply(wsv.step(&i));
-    }
-
-    let input_set = line.chars().map(Some).chain(vec![None]);
-
+    let mut data = Data::new();
     WsvMachine::process(input_set).for_each(|o| {
         data.apply(o);
     });
@@ -40,39 +28,65 @@ fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> 
     data.reconcile()
 }
 
+/// Note I can also use a loop and call `.next()` on the `chars` iterator to get the same behaviour, but
+/// I wanted to make it clear that the input set is `Option<char>`, where the `None` indicates the end
+/// of a row/file. It is not `char` on its own.
+pub fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
+    let input_set = line.chars().map(Some).chain(vec![None]);
+
+    let mut data = Data::new().at_row(row_index + 1);
+    WsvMachine::process(input_set).for_each(|o| {
+        data.apply(o);
+    });
+
+    data.reconcile_row()
+}
+
+/// This trait encapsulates the raw definition of a Mealy Machine as closely as I can to the wikipedia entry.
+///
+/// There are two functions, three types, and one type constrait, making up the sextuple that is a
+/// Mealy Machine. I am using the Default trait parameter on the StateSpace as the initial state requirement.
+/// Notice that the function to combine all these parts is very short. Pure state machines are simple. The
+/// hard part is working out what part of your problem fits in the StateSpace, InputAlphabet and OutputAlphabet.
+/// The functions on them are the easy bit, relatively speaking.
 trait Mealy {
     type StateSpace: Default;
     type InputAlphabet;
     type OutputAlphabet;
     fn transition(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::StateSpace;
     fn output(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::OutputAlphabet;
-    fn state(&mut self) -> &mut Self::StateSpace;
 
-    fn step(&mut self, input: &Self::InputAlphabet) -> Self::OutputAlphabet {
-        let state = self.state();
-        *state = Self::transition(&state, input);
-        Self::output(&state, input)
+    /// This is the stateful version, with in and out being vectors instead.
+    fn process_vec(input: Vec<Self::InputAlphabet>) -> Vec<Self::OutputAlphabet> {
+        let mut state = Self::StateSpace::default();
+        let mut output = vec![];
+        for i in input {
+            state = Self::transition(&state, &i);
+            output.push(Self::output(&state, &i));
+        }
+        output
     }
 
+    /// This is what I believe is the more "idiomatic" way. One can even argue for using
+    /// `IntoIterator` instead of the `Iterator` trait.
     fn process(
         input: impl Iterator<Item = Self::InputAlphabet>,
     ) -> impl Iterator<Item = Self::OutputAlphabet> {
         input.scan(Self::StateSpace::default(), |state, i| {
             *state = Self::transition(state, &i);
-            Some(Self::output(&state, &i))
+            Some(Self::output(state, &i))
         })
     }
 }
 
 #[derive(Debug, Default)]
-struct WsvMachine {
-    state: State,
-}
+struct WsvMachine {}
 
 #[derive(Debug, PartialEq, Hash, Clone, Copy, Default)]
 enum State {
     #[default]
     Default,
+    StartComment,
     Comment,
     Finished,
     MayBeNull,
@@ -85,13 +99,19 @@ enum State {
     MayBeEscapedReturn,
     EscapedReturn,
     EscapedDoubleQuote,
+    EndOfValueAndEndOfLine,
+    NullEndOfLine,
+    EndOfLine,
     StringPart,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash)]
 enum Transform {
     AddValue,
+    AddValueAndRow,
     AddNull,
+    AddNullAndRow,
+    AddRow,
     AddError(ErrorKind),
     PushChar(char),
     PushDash,
@@ -105,9 +125,6 @@ impl Mealy for WsvMachine {
     type InputAlphabet = Option<char>;
     type OutputAlphabet = Transform;
 
-    fn state(&mut self) -> &mut Self::StateSpace {
-        &mut self.state
-    }
     fn output(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::OutputAlphabet {
         match (state, input) {
             (State::Value, Some(c)) => Transform::PushChar(*c),
@@ -119,65 +136,119 @@ impl Mealy for WsvMachine {
             (State::EscapedReturn, _) => Transform::PushNewline,
             (State::EscapedDoubleQuote, _) => Transform::PushQuote,
             (State::EndOfValue, _) => Transform::AddValue,
-            (State::Comment, _) => Transform::AddValue,
+            (State::StartComment, _) => Transform::AddValue,
             (State::Null, _) => Transform::AddNull,
+            (State::EndOfLine, _) => Transform::AddRow,
+            (State::NullEndOfLine, _) => Transform::AddNullAndRow,
+            (State::EndOfValueAndEndOfLine, _) => Transform::AddValueAndRow,
+
             (_, _) => Transform::IncrementColumnNumber,
         }
     }
     fn transition(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::StateSpace {
         match (state, input) {
-            (State::Error(ErrorKind::MissingWhitespace), _) => State::Finished,
-            (State::Error(ErrorKind::OddDoubleQuotes), _) => State::Finished,
-            (State::Error(_), _) => State::Finished,
-            (State::Value, None) => State::EndOfValue,
-            (State::Value, Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
-            (State::Value, Some('#')) => State::Comment,
-            (State::Value, Some(c)) if c.is_whitespace() => State::EndOfValue,
-            (State::Value, Some(_)) => State::Value,
-            (State::StringPart, None) => State::Error(ErrorKind::OddDoubleQuotes),
-            (State::StringPart, Some('\"')) => State::EscapeOrEndOfString,
-            (State::StringPart, Some(_)) => State::StringPart,
             (State::Finished, _) => State::Finished,
-            (State::Comment, _) => State::Finished,
+            (State::Error(_), _) => State::Finished,
+
+            (State::Comment, Some('\n')) => State::EndOfLine,
+            (State::Comment, None) => State::Finished,
+            (State::Comment, _) => State::Comment,
+
+            (State::StartComment, Some('\n')) => State::EndOfLine,
+            (State::StartComment, None) => State::Finished,
+            (State::StartComment, _) => State::Comment,
+
+            (State::EndOfValueAndEndOfLine, None) => State::Finished,
+            (State::EndOfValueAndEndOfLine, Some('\n')) => State::EndOfLine,
+            (State::EndOfValueAndEndOfLine, Some('#')) => State::Comment,
+            (State::EndOfValueAndEndOfLine, Some('-')) => State::MayBeNull,
+            (State::EndOfValueAndEndOfLine, Some('\"')) => State::StartString,
+            (State::EndOfValueAndEndOfLine, Some(c)) if c.is_whitespace() => State::Default,
+            (State::EndOfValueAndEndOfLine, Some(_)) => State::Value,
+
+            (State::NullEndOfLine, None) => State::Finished,
+            (State::NullEndOfLine, Some('\n')) => State::EndOfLine,
+            (State::NullEndOfLine, Some('#')) => State::Comment,
+            (State::NullEndOfLine, Some('-')) => State::MayBeNull,
+            (State::NullEndOfLine, Some('\"')) => State::StartString,
+            (State::NullEndOfLine, Some(c)) if c.is_whitespace() => State::Default,
+            (State::NullEndOfLine, Some(_)) => State::Value,
+
+            (State::EndOfLine, None) => State::Finished,
+            (State::EndOfLine, Some('\n')) => State::EndOfLine,
+            (State::EndOfLine, Some('#')) => State::Comment,
+            (State::EndOfLine, Some('-')) => State::MayBeNull,
+            (State::EndOfLine, Some('\"')) => State::StartString,
+            (State::EndOfLine, Some(c)) if c.is_whitespace() => State::Default,
+            (State::EndOfLine, Some(_)) => State::Value,
+
             (State::Default, None) => State::Finished,
-            (State::Default, Some('#')) => State::Finished,
+            (State::Default, Some('\n')) => State::EndOfLine,
+            (State::Default, Some('#')) => State::Comment,
             (State::Default, Some('-')) => State::MayBeNull,
             (State::Default, Some('\"')) => State::StartString,
             (State::Default, Some(c)) if c.is_whitespace() => State::Default,
             (State::Default, Some(_)) => State::Value,
+
             (State::EndOfValue, None) => State::Finished,
-            (State::EndOfValue, Some('#')) => State::Finished,
+            (State::EndOfValue, Some('\n')) => State::EndOfLine,
+            (State::EndOfValue, Some('#')) => State::Comment,
             (State::EndOfValue, Some('-')) => State::MayBeNull,
             (State::EndOfValue, Some('\"')) => State::StartString,
             (State::EndOfValue, Some(c)) if c.is_whitespace() => State::Default,
             (State::EndOfValue, Some(_)) => State::Value,
+
             (State::Null, None) => State::Finished,
-            (State::Null, Some('#')) => State::Finished,
+            (State::Null, Some('\n')) => State::EndOfLine,
+            (State::Null, Some('#')) => State::EndOfLine,
             (State::Null, Some('-')) => State::MayBeNull,
             (State::Null, Some('\"')) => State::StartString,
             (State::Null, Some(c)) if c.is_whitespace() => State::Default,
             (State::Null, Some(_)) => State::Value,
+
             (State::MayBeNull, None) => State::Null,
+            (State::MayBeNull, Some('\n')) => State::NullEndOfLine,
             (State::MayBeNull, Some(c)) if c.is_whitespace() => State::Null,
             (State::MayBeNull, Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
             (State::MayBeNull, Some(_)) => State::Value,
+
+            (State::Value, None) => State::EndOfValue,
+            (State::Value, Some('\n')) => State::EndOfValueAndEndOfLine,
+            (State::Value, Some('\"')) => State::Error(ErrorKind::MissingWhitespace),
+            (State::Value, Some('#')) => State::StartComment,
+            (State::Value, Some(c)) if c.is_whitespace() => State::EndOfValue,
+            (State::Value, Some(_)) => State::Value,
+
             (State::StartString, None) => State::Error(ErrorKind::OddDoubleQuotes),
+            (State::StartString, Some('\n')) => State::Error(ErrorKind::OddDoubleQuotes),
             (State::StartString, Some('\"')) => State::EscapeOrEndOfString,
             (State::StartString, Some(_)) => State::StringPart,
+
             (State::EscapedReturn, None) => State::Error(ErrorKind::OddDoubleQuotes),
+            (State::EscapedReturn, Some('\n')) => State::Error(ErrorKind::OddDoubleQuotes),
             (State::EscapedReturn, Some('\"')) => State::EscapeOrEndOfString,
             (State::EscapedReturn, Some(_)) => State::StringPart,
+
             (State::EscapedDoubleQuote, None) => State::Error(ErrorKind::OddDoubleQuotes),
+            (State::EscapedDoubleQuote, Some('\n')) => State::Error(ErrorKind::OddDoubleQuotes),
             (State::EscapedDoubleQuote, Some('\"')) => State::EscapeOrEndOfString,
             (State::EscapedDoubleQuote, Some(_)) => State::StringPart,
+
             (State::EscapeOrEndOfString, None) => State::EndOfValue,
-            (State::EscapeOrEndOfString, Some('#')) => State::Comment,
+            (State::EscapeOrEndOfString, Some('\n')) => State::EndOfValueAndEndOfLine,
+            (State::EscapeOrEndOfString, Some('#')) => State::StartComment,
             (State::EscapeOrEndOfString, Some('\"')) => State::EscapedDoubleQuote,
             (State::EscapeOrEndOfString, Some('/')) => State::MayBeEscapedReturn,
             (State::EscapeOrEndOfString, Some(c)) if c.is_whitespace() => State::EndOfValue,
             (State::EscapeOrEndOfString, _) => State::Error(ErrorKind::MissingWhitespace),
+
             (State::MayBeEscapedReturn, Some('\"')) => State::EscapedReturn,
             (State::MayBeEscapedReturn, _) => State::Error(ErrorKind::MissingWhitespace),
+
+            (State::StringPart, None) => State::Error(ErrorKind::OddDoubleQuotes),
+            (State::StringPart, Some('\n')) => State::Error(ErrorKind::OddDoubleQuotes),
+            (State::StringPart, Some('\"')) => State::EscapeOrEndOfString,
+            (State::StringPart, Some(_)) => State::StringPart,
         }
     }
 }
@@ -187,18 +258,22 @@ struct Data {
     row: usize,
     col: usize,
     buf: String,
-    out: Vec<WsvValue>,
+    out: Vec<Vec<WsvValue>>,
     err: Option<Error>,
 }
 impl Data {
-    fn new(row: usize) -> Data {
+    fn new() -> Data {
         Data {
-            row,
+            row: 1,
             col: 0,
             buf: String::new(),
-            out: vec![],
+            out: vec![vec![]],
             err: None,
         }
+    }
+    fn at_row(mut self, idx: usize) -> Self {
+        self.row = idx + 1;
+        self
     }
 
     fn apply(&mut self, transform: Transform) {
@@ -225,21 +300,60 @@ impl Data {
             }
             Transform::AddValue => {
                 self.col += 1;
-                self.out.push(WsvValue::V(self.buf.clone()));
+                self.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::V(self.buf.clone()));
                 self.buf.clear();
             }
             Transform::AddNull => {
                 self.col += 1;
-                self.out.push(WsvValue::Null);
+                self.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::Null);
                 self.buf.clear();
             }
             Transform::IncrementColumnNumber => self.col += 1,
+            Transform::AddValueAndRow => {
+                self.col += 1;
+
+                self.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::V(self.buf.clone()));
+                self.out.push(vec![]);
+
+                self.buf.clear();
+            }
+            Transform::AddNullAndRow => {
+                self.col += 1;
+
+                self.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::Null);
+                self.out.push(vec![]);
+
+                self.buf.clear();
+            }
+            Transform::AddRow => {
+                self.col += 1;
+
+                self.out.push(vec![])
+            }
         }
     }
-    fn reconcile(self) -> Result<Vec<WsvValue>, Error> {
+    fn reconcile(self) -> Result<Vec<Vec<WsvValue>>, Error> {
         match self.err {
             Some(e) => Err(dbg!(e)),
             None => Ok(self.out),
+        }
+    }
+    fn reconcile_row(mut self) -> Result<Vec<WsvValue>, Error> {
+        match self.err {
+            Some(e) => Err(dbg!(e)),
+            None => Ok(self.out.pop().unwrap()),
         }
     }
 }
@@ -248,6 +362,3 @@ impl Data {
 use crate::unit;
 #[cfg(test)]
 unit! {}
-
-use crate::unit_bench;
-unit_bench! {}
