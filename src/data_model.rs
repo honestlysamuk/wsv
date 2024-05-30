@@ -4,6 +4,8 @@ use std::fmt::Display;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::{Attribute, Cell, Color, Table};
 
+use crate::io::calculate_stuff;
+
 #[derive(Default, Debug, Copy, Clone)]
 pub(crate) enum Parser {
     Nom,
@@ -43,6 +45,7 @@ impl Display for Wsv {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut table = Table::new();
         table.apply_modifier(UTF8_ROUND_CORNERS);
+
         for line in &self.0 {
             match line {
                 Err(e) => {
@@ -65,7 +68,7 @@ impl Display for Wsv {
                 }
             }
         }
-        write!(f, "{}", table)
+        write!(f, "{}\n{}", table, calculate_stuff(&self.0))
     }
 }
 
@@ -78,6 +81,12 @@ pub enum WsvValue {
 impl WsvValue {
     pub fn new(i: &str) -> Self {
         WsvValue::V(i.into())
+    }
+    pub fn len(&self) -> usize {
+        match self {
+            WsvValue::Null => 0,
+            WsvValue::V(string) => string.len(),
+        }
     }
 }
 impl fmt::Display for WsvValue {
@@ -99,6 +108,23 @@ impl From<&str> for WsvValue {
 impl From<String> for WsvValue {
     fn from(string: String) -> WsvValue {
         WsvValue::V(string)
+    }
+}
+
+impl WsvValue {
+    // assumes a clean input.
+    pub fn convert(value: &str) -> Self {
+        if value == "-" {
+            WsvValue::Null
+        } else if value.starts_with('"') {
+            WsvValue::V(
+                value[1..value.len() - 1]
+                    .replace("\"/\"", "\n")
+                    .replace("\"\"", "\""),
+            )
+        } else {
+            WsvValue::V(value.to_owned())
+        }
     }
 }
 
