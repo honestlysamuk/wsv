@@ -20,12 +20,12 @@ pub fn parse(i: &str) -> Vec<Result<Vec<WsvValue>, Error>> {
 pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
     let input_set = i.chars().map(Some).chain(vec![None]);
 
-    let mut data = Data::new();
-    WsvMachine::process(input_set).for_each(|o| {
-        data.apply(o);
+    let mut partially_constructed_wsv = WsvBuilder::new();
+    WsvMachine::process(input_set).for_each(|transform| {
+        partially_constructed_wsv.apply(transform);
     });
 
-    data.reconcile()
+    partially_constructed_wsv.finish()
 }
 
 /// Note I can also use a loop and call `.next()` on the `chars` iterator to get the same behaviour, but
@@ -34,12 +34,12 @@ pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
 pub fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let input_set = line.chars().map(Some).chain(vec![None]);
 
-    let mut data = Data::new().at_row(row_index + 1);
-    WsvMachine::process(input_set).for_each(|o| {
-        data.apply(o);
+    let mut partially_constructed_wsv = WsvBuilder::new().at_row(row_index + 1);
+    WsvMachine::process(input_set).for_each(|transform| {
+        partially_constructed_wsv.apply(transform);
     });
 
-    data.reconcile_row()
+    partially_constructed_wsv.finish_row()
 }
 
 /// This trait encapsulates the raw definition of a Mealy Machine as closely as I can to the wikipedia entry.
@@ -56,16 +56,16 @@ trait Mealy {
     fn transition(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::StateSpace;
     fn output(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::OutputAlphabet;
 
-    /// This is the stateful version, with in and out being vectors instead.
-    fn process_vec(input: Vec<Self::InputAlphabet>) -> Vec<Self::OutputAlphabet> {
-        let mut state = Self::StateSpace::default();
-        let mut output = vec![];
-        for i in input {
-            state = Self::transition(&state, &i);
-            output.push(Self::output(&state, &i));
-        }
-        output
-    }
+    // /// This is the stateful version, with in and out being vectors instead.
+    // fn process_vec(input: Vec<Self::InputAlphabet>) -> Vec<Self::OutputAlphabet> {
+    //     let mut state = Self::StateSpace::default();
+    //     let mut output = vec![];
+    //     for i in input {
+    //         state = Self::transition(&state, &i);
+    //         output.push(Self::output(&state, &i));
+    //     }
+    //     output
+    // }
 
     /// This is what I believe is the more "idiomatic" way. One can even argue for using
     /// `IntoIterator` instead of the `Iterator` trait.
@@ -84,40 +84,40 @@ struct WsvMachine {}
 
 #[derive(Debug, PartialEq, Hash, Clone, Copy, Default)]
 enum State {
+    Comment,
     #[default]
     Default,
-    StartComment,
-    Comment,
-    Finished,
-    MayBeNull,
-    Null,
-    Value,
+    EndOfLine,
     EndOfValue,
+    EndOfValueAndEndOfLine,
     Error(ErrorKind),
-    StartString,
     EscapeOrEndOfString,
-    MayBeEscapedReturn,
     EscapedReturn,
     EscapedDoubleQuote,
-    EndOfValueAndEndOfLine,
+    Finished,
+    MayBeEscapedReturn,
+    MayBeNull,
+    Null,
     NullEndOfLine,
-    EndOfLine,
+    StartComment,
+    StartString,
     StringPart,
+    Value,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash)]
 enum Transform {
-    AddValue,
-    AddValueAndRow,
+    AddError(ErrorKind),
     AddNull,
     AddNullAndRow,
     AddRow,
-    AddError(ErrorKind),
+    AddValue,
+    AddValueAndRow,
+    IncrementColumnNumber,
     PushChar(char),
     PushDash,
-    PushQuote,
     PushNewline,
-    IncrementColumnNumber,
+    PushQuote,
 }
 
 impl Mealy for WsvMachine {
@@ -254,16 +254,16 @@ impl Mealy for WsvMachine {
 }
 
 #[derive(Debug)]
-struct Data {
+struct WsvBuilder {
     row: usize,
     col: usize,
     buf: String,
     out: Vec<Vec<WsvValue>>,
     err: Option<Error>,
 }
-impl Data {
-    fn new() -> Data {
-        Data {
+impl WsvBuilder {
+    fn new() -> WsvBuilder {
+        WsvBuilder {
             row: 1,
             col: 0,
             buf: String::new(),
@@ -344,13 +344,13 @@ impl Data {
             }
         }
     }
-    fn reconcile(self) -> Result<Vec<Vec<WsvValue>>, Error> {
+    fn finish(self) -> Result<Vec<Vec<WsvValue>>, Error> {
         match self.err {
             Some(e) => Err(dbg!(e)),
             None => Ok(self.out),
         }
     }
-    fn reconcile_row(mut self) -> Result<Vec<WsvValue>, Error> {
+    fn finish_row(mut self) -> Result<Vec<WsvValue>, Error> {
         match self.err {
             Some(e) => Err(dbg!(e)),
             None => Ok(self.out.pop().unwrap()),
