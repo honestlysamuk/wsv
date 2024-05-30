@@ -25,6 +25,7 @@ mod parsers {
     pub mod nom;
     #[cfg(feature = "pest")]
     pub mod pest;
+    pub mod regex;
     pub mod split;
     pub mod state;
 }
@@ -40,6 +41,8 @@ pub use crate::parsers::nom;
 #[doc(inline)]
 #[cfg(feature = "pest")]
 pub use crate::parsers::pest;
+#[doc(inline)]
+pub use crate::parsers::regex;
 #[doc(inline)]
 pub use crate::parsers::split;
 #[doc(inline)]

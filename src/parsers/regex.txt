@@ -1,0 +1,38 @@
+Single white space 
+
+[\s[^\n]]
+
+New Line
+
+"/"
+
+Double Quote
+
+""
+
+StringPart
+
+[^\n"]+
+
+Null
+
+-
+
+Value
+
+
+([^\s"#]+)
+
+String
+
+("(""|"/"|[^\n"]+)*") 
+
+Comment
+
+#.*$
+
+Line
+
+(Null|Value|String)?WS+((Null|Value|String)WS+)
+
+(-|("(""|"/"|[^\n"]+)*")|([^\s"#]+))?[\s[^\n]]+(-|("(""|"/"|[^\n"]+)*")|([^\s"#]+))*[\s[^\n]]*(#.*$)?
