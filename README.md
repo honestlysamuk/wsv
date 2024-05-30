@@ -69,9 +69,9 @@ Implement parsers using the following tools:
    2. Rkyv
 4. ***grammar-like***
    1. ~~Pest~~
-   2. Oak
-   3. Peginator
-   4.  rust-peg
+   2. Peginator
+   3.  rust-peg
+   4.  ~~Oak~~ (compiled on nightly so skipping)
 
 # Contributing
 
