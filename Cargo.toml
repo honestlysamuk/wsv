@@ -23,6 +23,8 @@ pest = { version = "2", optional = true }
 pest_derive = { version = "2", optional = true }
 nom-supreme = { version = "0", optional = true }
 divan = "0"
+peginator = "0.7.0"
+regex = "1.10.4"
 
 [dev-dependencies]
 #criterion = { version = "0.5.1", features = ["html_reports"] }
@@ -34,6 +36,6 @@ nom = ["dep:nom", "dep:nom-supreme"]
 pest = ["dep:pest", "dep:pest_derive"]
 
 [[bench]]
-name = "div"
+name = "divan"
 harness = false
 #required-features = ["nom", "pest"]
