@@ -81,3 +81,5 @@ This library welcomes contributions of new implementations. There is already a b
 
 Currently, the focus is only on text file -> Rust data model. deserialisation, since some tools are uni-directional. This repo welcomes serialisation solutions but note that the surrounding testing does not yet exist.
 
+It is recommended to always use [cargo-crev](https://github.com/crev-dev/cargo-crev)
+to verify the trustworthiness of each of your dependencies, including this one.
