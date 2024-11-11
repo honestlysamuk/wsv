@@ -4,6 +4,11 @@
 //! requirement of clear error messages. If someone knows a way to extract row and column
 //! numbers, and even to differentiate between the two error states, I would love to know.
 //! Initial investigation suggests using nom-supreme. Any other ideas?
+//!
+//! This is also the only implementation that required unit tests for me. This was my first
+//! use of the crate so I wanted confidence on the outcome of each parser. Since it now works
+//! and the crate passes all the standard unit tests, the specific ones could be deleted. I
+//! keep them just in case the above fixes can be made.
 
 pub(crate) use nom::{
     branch::alt,

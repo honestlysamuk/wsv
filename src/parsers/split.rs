@@ -3,8 +3,7 @@
 //! This splits a given line by the special characters and performs logic on the parts. Because of
 //! the requirement that we have an even number of double quotes, there are different considerations
 //! to make depending on the parity of the string part. This was very unpleasant to write, fix and
-//! improve, but it makes for an interesting comparison with is all about tracing and minor
-//! tweaks here and there, none of which make any superficial sense.
+//! improve, but it makes for an interesting comparison with the rest.
 //! Enjoy!
 
 use crate::data_model::*;

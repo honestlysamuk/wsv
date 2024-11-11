@@ -14,7 +14,7 @@
 use crate::data_model::*;
 
 pub fn parse(i: &str) -> Vec<Result<Vec<WsvValue>, Error>> {
-    i.split("n").enumerate().map(parse_line).collect()
+    i.split('\n').enumerate().map(parse_line).collect()
 }
 
 pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {

@@ -28,6 +28,7 @@ mod parsers {
     pub mod regex;
     pub mod split;
     pub mod state;
+    pub mod typestate;
 }
 #[doc(inline)]
 pub use crate::parsers::first;
@@ -47,3 +48,5 @@ pub use crate::parsers::regex;
 pub use crate::parsers::split;
 #[doc(inline)]
 pub use crate::parsers::state;
+#[doc(inline)]
+pub use crate::parsers::typestate;

@@ -6,16 +6,15 @@
 use crate::data_model::*;
 
 pub fn parse(i: &str) -> Vec<Result<Vec<WsvValue>, Error>> {
-    i.split('\n').enumerate().map(parse_line).collect()
+    i.split("\n").enumerate().map(parse_line).collect()
 }
 
 pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
-    // see the state file for a more elegant handling of this. I wrote it this way to define very clearly my input alphabet, which is an Option.
     let input_set = i.chars().map(Some).chain(vec![None]);
 
-    let mut partially_constructed_wsv = WsvBuilder::new();
+    let mut partially_constructed_wsv = Scaffold::at_row(0);
     WsvMachine::process(input_set).for_each(|transform| {
-        partially_constructed_wsv.apply(transform);
+        transform(&mut partially_constructed_wsv);
     });
 
     partially_constructed_wsv.finish()
@@ -25,14 +24,14 @@ pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
 pub fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let input_set = line.chars().map(Some).chain(vec![None]);
 
-    let mut partially_constructed_wsv = WsvBuilder::new().at_row(row_index + 1);
-    WsvMachine::process(input_set).for_each(|transform| {
-        partially_constructed_wsv.apply(transform);
+    let mut partially_constructed_wsv = Scaffold::at_row(row_index);
+    WsvMachine::process(input_set).for_each(|change| {
+        change(&mut partially_constructed_wsv);
     });
 
     partially_constructed_wsv.finish_row()
 }
-
+use std::default::Default;
 /// This trait encapsulates the raw definition of a Moore Machine as closely as I can to the wikipedia entry.
 ///
 /// There are two functions, three types, and one type constrait, making up the sextuple that is a Moore Machine. I am using the Default trait parameter on the StateSpace as the initial state requirement.Notice that the function to combine all these parts is very short. Stateless machines are simple. The hard part is working out what part of your problem fits in the StateSpace, InputAlphabet and OutputAlphabet. The functions on them are the easy bit, relatively speaking. The only difference with Mealy here is the parametrisation of the output function.
@@ -97,31 +96,6 @@ enum State {
 }
 
 /*
-
-# The Output Alphabet
-
-This is my output alphabet. If you compare this whole implementation to the `State` implementation, you will see that this doesn't exist. This enum is an additional indirection to highlight exactly which part of the logic is controlled by the state machine. Each variant represents a transformation, which my WsvBuilder knows how to interpret. Remember, functions and data are symmetrical.
-
-You may ask why the output set is not something else, such as a WsvValue directly. Go back to the definition of a state machine. The Output set is defined as *finite*. WsvValue has a variant `Value` which contains a `String`. String is an infinite set, and since enums are sum types, that makes the WsvValue have cardinality ∞ + 1 = ∞. This enum's cardinality, however, is the sum of the cardinalities of ErrorKind, char and 9 (There are 11 variants minus AddError and PushChar). `char` is a unicode character and there are 149_813 of those as of [Unicode 15.1.0](https://www.unicode.org/versions/Unicode15.1.0/), so Transform has a cardinality of 2 + 9 + 149_813 = 149_824. That is not infinite, and so is a valid Output Set.
-
-
-*/
-
-#[derive(Debug, PartialEq, Clone, Copy, Hash)]
-enum Transform {
-    AddError(ErrorKind),
-    AddNull,
-    AddNullAndRow,
-    AddRow,
-    AddValue,
-    AddValueAndRow,
-    IncrementColumnNumber,
-    PushChar(char),
-    PushDash,
-    PushNewline,
-    PushQuote,
-}
-/*
 For this use case, I have no need to run arbitrary code between state transitions. I only want the complete list of outputs. Therefore, my machine does not need to hold any data. I could add a `state: State` attribute, and a function in the trait to interact with that attribute, then write a function which lets me encapsulate the logic of iterating through one transition at a time, but that is not useful for WSV here.
 */
 struct WsvMachine {}
@@ -129,7 +103,7 @@ struct WsvMachine {}
 impl Moore for WsvMachine {
     type StateSpace = State;
     type InputAlphabet = Option<char>;
-    type OutputAlphabet = Transform;
+    type OutputAlphabet = &'static dyn Fn(&mut Scaffold);
 
     /// The main difference between Moore and Mealy can be seen here. This function takes only one parameter, not two. Notice how Rust allows us to keep the expression simple using pattern matching. Otherwise, we would be required to define every state and transform explicitly, leading to statements like
     ///
@@ -140,21 +114,82 @@ impl Moore for WsvMachine {
     /// and so on, for the states which handle A, a, B and b
     ///
     fn output(state: &Self::StateSpace) -> Self::OutputAlphabet {
-        match state {
-            State::Value(c) => Transform::PushChar(*c),
-            State::StringPart(c) => Transform::PushChar(*c),
-            State::Error(kind) => Transform::AddError(*kind),
-            State::MayBeNull => Transform::PushDash,
-            State::EscapedReturn => Transform::PushNewline,
-            State::EscapedDoubleQuote => Transform::PushQuote,
-            State::EndOfValue => Transform::AddValue,
-            State::StartComment => Transform::AddValue,
-            State::Null => Transform::AddNull,
-            State::EndOfLine => Transform::AddRow,
-            State::NullEndOfLine => Transform::AddNullAndRow,
-            State::EndOfValueAndEndOfLine => Transform::AddValueAndRow,
-            _ => Transform::IncrementColumnNumber,
-        }
+        let out = match state {
+            State::Value(c) => |scaffold: &mut Scaffold| {
+                scaffold.col += 1;
+                scaffold.buf.push(*c);
+            },
+            State::StringPart(c) => |scaffold: &mut Scaffold| {
+                scaffold.col += 1;
+                scaffold.buf.push(*c);
+            },
+            State::Error(kind) => |scaffold| {
+                scaffold.col += 1;
+                scaffold.err = Some(Error::new(*kind, scaffold.row, scaffold.col, None));
+            },
+            State::MayBeNull => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.buf.push('-');
+            },
+            State::EscapedReturn => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.buf.push('\n');
+            },
+            State::EscapedDoubleQuote => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.buf.push('\"');
+            },
+            State::EndOfValue => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::V(scaffold.buf.clone()));
+                scaffold.buf.clear();
+            },
+            State::StartComment => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::V(scaffold.buf.clone()));
+               scaffold.buf.clear();
+            },
+            State::Null => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::Null);
+                scaffold.buf.clear();
+            },
+            State::EndOfLine =>  |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.out.push(vec![])
+            },
+            State::NullEndOfLine =>  |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::Null);
+                scaffold.out.push(vec![]);
+                scaffold.buf.clear();
+            },
+            State::EndOfValueAndEndOfLine => |&mut scaffold| {
+                scaffold.col += 1;
+                scaffold.out
+                    .last_mut()
+                    .expect("initialised with one")
+                    .push(WsvValue::V(scaffold.buf.clone()));
+                scaffold.out.push(vec![]);
+                scaffold.buf.clear();
+            },
+            _ => |&mut scaffold| {
+                scaffold.col += 1;
+            },
+        };
+        Box::new(out)
     }
     /// The wiki article defines this with the delta symbol, δ. The only change between this function and the Mealy function is the addition of `(_)` after `State::Value` and `State::StringPart`.
     fn transition(state: &Self::StateSpace, input: &Self::InputAlphabet) -> Self::StateSpace {
@@ -249,99 +284,24 @@ impl Moore for WsvMachine {
     }
 }
 
-/*
-The WsvBuilder is the data structure which gets incrementally modified by the transforms, and produces the final parser output. There is no difference between this Builder and the one in the Mealy variant. However, I have kept each implementation with their own definitions to simplify maintenance.
 
-*/
+/// The data structure which gets incrementally modified by the outputs, and produces the final parser output.
 #[derive(Debug)]
-struct WsvBuilder {
+struct Scaffold {
     row: usize,
     col: usize,
     buf: String,
     out: Vec<Vec<WsvValue>>,
     err: Option<Error>,
 }
-impl WsvBuilder {
-    fn new() -> WsvBuilder {
-        WsvBuilder {
-            row: 1,
+impl Scaffold {
+    fn at_row(idx: usize) -> Scaffold {
+        Scaffold {
+            row: 1 + idx,
             col: 0,
             buf: String::new(),
             out: vec![vec![]],
             err: None,
-        }
-    }
-    fn at_row(mut self, idx: usize) -> Self {
-        self.row = idx + 1;
-        self
-    }
-
-    fn apply(&mut self, transform: Transform) {
-        match transform {
-            Transform::PushChar(char) => {
-                self.col += 1;
-                self.buf.push(char);
-            }
-            Transform::AddError(kind) => {
-                self.col += 1;
-                self.err = Some(Error::new(kind, self.row, self.col, None));
-            }
-            Transform::PushDash => {
-                self.col += 1;
-                self.buf.push('-');
-            }
-            Transform::PushQuote => {
-                self.col += 1;
-                self.buf.push('\"');
-            }
-            Transform::PushNewline => {
-                self.col += 1;
-                self.buf.push('\n');
-            }
-            Transform::AddValue => {
-                self.col += 1;
-                self.out
-                    .last_mut()
-                    .expect("initialised with one")
-                    .push(WsvValue::V(self.buf.clone()));
-                self.buf.clear();
-            }
-            Transform::AddNull => {
-                self.col += 1;
-                self.out
-                    .last_mut()
-                    .expect("initialised with one")
-                    .push(WsvValue::Null);
-                self.buf.clear();
-            }
-            Transform::IncrementColumnNumber => self.col += 1,
-            Transform::AddValueAndRow => {
-                self.col += 1;
-
-                self.out
-                    .last_mut()
-                    .expect("initialised with one")
-                    .push(WsvValue::V(self.buf.clone()));
-                self.out.push(vec![]);
-
-                self.buf.clear();
-            }
-            Transform::AddNullAndRow => {
-                self.col += 1;
-
-                self.out
-                    .last_mut()
-                    .expect("initialised with one")
-                    .push(WsvValue::Null);
-                self.out.push(vec![]);
-
-                self.buf.clear();
-            }
-            Transform::AddRow => {
-                self.col += 1;
-
-                self.out.push(vec![])
-            }
         }
     }
     fn finish(self) -> Result<Vec<Vec<WsvValue>>, Error> {
