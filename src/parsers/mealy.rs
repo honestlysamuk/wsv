@@ -34,7 +34,7 @@ pub fn parse_strict(i: &str) -> Result<Vec<Vec<WsvValue>>, Error> {
 pub fn parse_line((row_index, line): (usize, &str)) -> Result<Vec<WsvValue>, Error> {
     let input_set = line.chars().map(Some).chain(vec![None]);
 
-    let mut partially_constructed_wsv = WsvBuilder::new().at_row(row_index + 1);
+    let mut partially_constructed_wsv = WsvBuilder::new().at_row(row_index);
     WsvMachine::process(input_set).for_each(|transform| {
         partially_constructed_wsv.apply(transform);
     });
